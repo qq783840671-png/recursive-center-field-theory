@@ -1,0 +1,44 @@
+{
+  "name": "recursive-center-field-theory",
+  "interface": {
+    "displayName": "Recursive Center-Field Theory"
+  },
+  "plugins": [
+    {
+      "name": "rcf-focus",
+      "source": {
+        "source": "local",
+        "path": "./plugins/rcf-focus"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "rcf-address",
+      "source": {
+        "source": "local",
+        "path": "./plugins/rcf-address"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "rcf-distill",
+      "source": {
+        "source": "local",
+        "path": "./plugins/rcf-distill"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

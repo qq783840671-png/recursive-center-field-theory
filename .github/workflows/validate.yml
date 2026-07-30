@@ -1,0 +1,36 @@
+name: Validate public example
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  public-example:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+      fail-fast: false
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Compile packaged helper
+        run: python -m py_compile plugins/rcf-focus/skills/recursive-center-field-dynamics/scripts/field_state.py plugins/rcf-address/skills/recursive-field-addressing/scripts/address_engine.py
+
+      - name: Run Address engine self-test
+        run: python plugins/rcf-address/skills/recursive-field-addressing/scripts/address_engine.py self-test
+
+      - name: Run public example tests
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+
+      - name: Run frozen Focus source tests
+        run: python -m unittest discover -s plugins/rcf-focus/skills/recursive-center-field-dynamics/tests -p "test_*.py" -v

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Distill"
+  short_description: "把长对话中的中心、边界与开放问题安全写入唯一项目知识源"
+  default_prompt: "Use $distill-conversation-ideas to distill the durable center of this conversation and safely merge it into the canonical project knowledge file."

@@ -1,0 +1,33 @@
+{
+  "name": "rcf-distill",
+  "version": "0.1.0-alpha.3",
+  "description": "Distill durable ideas, decisions, residuals, and provenance from fragmented conversations into one canonical knowledge destination.",
+  "author": {
+    "name": "qq783840671-png",
+    "url": "https://github.com/qq783840671-png"
+  },
+  "homepage": "https://github.com/qq783840671-png/recursive-center-field-theory/tree/main/plugins/rcf-distill",
+  "repository": "https://github.com/qq783840671-png/recursive-center-field-theory",
+  "license": "CC-BY-NC-4.0",
+  "keywords": [
+    "conversation-distillation",
+    "knowledge-maintenance",
+    "provenance",
+    "residuals",
+    "research-notes"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "RCF Distill",
+    "shortDescription": "Distill conversations into durable knowledge",
+    "longDescription": "Conservatively merges the durable center, decisions, constraints, hypotheses, conflicts, residuals, and provenance from fragmented conversations into one canonical project knowledge file.",
+    "developerName": "qq783840671-png",
+    "category": "Productivity",
+    "capabilities": ["Interactive", "Read", "Write"],
+    "defaultPrompt": [
+      "Distill this conversation into the canonical project knowledge file.",
+      "沉淀这段对话，把可复用内容合并到唯一知识主文件。"
+    ],
+    "brandColor": "#6B5B4D"
+  }
+}

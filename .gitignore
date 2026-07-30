@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+*.tmp
+*.bak
+.DS_Store
+Thumbs.db
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+.codex/recursive-center-field/
+state.json
+example-state.json
+_schema*.json
+_tmp*.py

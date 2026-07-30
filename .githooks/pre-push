@@ -1,0 +1,21 @@
+#!/bin/sh
+
+if [ "$FOCUS_EXPLICIT_UPLOAD" != "1" ]; then
+  echo "Push blocked: set only by the audited explicit-upload workflow." >&2
+  exit 1
+fi
+
+zero=0000000000000000000000000000000000000000
+while read local_ref local_sha remote_ref remote_sha
+do
+  if [ "$remote_sha" = "$zero" ]; then
+    continue
+  fi
+  if ! git merge-base --is-ancestor "$remote_sha" "$local_sha"; then
+    echo "Push blocked: remote history is not an ancestor of the local commit." >&2
+    exit 1
+  fi
+done
+
+exit 0
+

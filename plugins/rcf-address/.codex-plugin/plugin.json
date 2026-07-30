@@ -1,0 +1,33 @@
+{
+  "name": "rcf-address",
+  "version": "0.1.0-alpha.3",
+  "description": "Generate, validate, register, query, and audit field-relative dynamic addresses.",
+  "author": {
+    "name": "qq783840671-png",
+    "url": "https://github.com/qq783840671-png"
+  },
+  "homepage": "https://github.com/qq783840671-png/recursive-center-field-theory/tree/main/docs/dynamic-addressing",
+  "repository": "https://github.com/qq783840671-png/recursive-center-field-theory",
+  "license": "CC-BY-NC-4.0",
+  "keywords": [
+    "dynamic-addressing",
+    "knowledge-representation",
+    "provenance",
+    "versioned-memory",
+    "agent-orchestration"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "RCF Address",
+    "shortDescription": "Generate and audit dynamic field addresses",
+    "longDescription": "Turns field, center, partial-order, recursive-path, modal, evidence, and version constraints into traceable address records without treating labels as proof of structure.",
+    "developerName": "qq783840671-png",
+    "category": "Productivity",
+    "capabilities": ["Interactive", "Read", "Write"],
+    "defaultPrompt": [
+      "Use RCF Address to assign and audit dynamic addresses for this structure.",
+      "用 RCF Address 为这套结构赋址、标定并审计地址。"
+    ],
+    "brandColor": "#365B6D"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "name": "rcf-focus",
+  "version": "0.1.0-alpha.3",
+  "description": "Use Recursive Center-Field partial-order dynamics to clarify, model, execute, audit, and reopen complex tasks.",
+  "author": {
+    "name": "qq783840671-png",
+    "url": "https://github.com/qq783840671-png"
+  },
+  "homepage": "https://github.com/qq783840671-png/recursive-center-field-theory",
+  "repository": "https://github.com/qq783840671-png/recursive-center-field-theory",
+  "license": "CC-BY-NC-4.0",
+  "keywords": [
+    "focus",
+    "partial-order",
+    "long-horizon-agents",
+    "context-engineering",
+    "structured-reasoning"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "RCF Focus",
+    "shortDescription": "Model and execute changing complex tasks",
+    "longDescription": "Forms a task-relative field, recovers a necessary partial order, opens unequal-depth recursive addresses, executes legal frontiers, and writes evidence and residuals into the next version.",
+    "developerName": "qq783840671-png",
+    "category": "Productivity",
+    "capabilities": ["Interactive", "Read", "Write"],
+    "defaultPrompt": [
+      "Use Focus: propose the F0 axis first, then model and execute this task.",
+      "用 Focus：先给出候选 F0 偏序轴，再建模并执行这个任务。"
+    ],
+    "brandColor": "#243447"
+  }
+}

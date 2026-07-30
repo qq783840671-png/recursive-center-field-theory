@@ -1,0 +1,55 @@
+{
+  "source_panorama_version": 0,
+  "graph_nodes": [],
+  "graph_node_updates": [
+    {
+      "address": "F0",
+      "function": "formed root contract for an auditable defect repair"
+    }
+  ],
+  "graph_relations": [],
+  "realized_addresses": [],
+  "frontiers_after": {
+    "action": [],
+    "expansion": [],
+    "compressed": []
+  },
+  "residuals": [],
+  "absorbed_residuals": [],
+  "empty_residual_reason": "The minimal one-node formation has no unabsorbed difference at this demonstration tolerance.",
+  "modal_results": [],
+  "evidence": [],
+  "graph_status": "validated",
+  "order_status": "validated",
+  "center_update": {
+    "status": "selected",
+    "candidates": [
+      {
+        "id": "K-F0",
+        "members": ["F0"],
+        "relation_ids": [],
+        "closure_targets": ["F0"],
+        "minimality_status": "validated",
+        "tests": {
+          "deletion": {"status": "not-applicable", "rationale": "The demonstration field contains only its irreducible root contract.", "evidence_ids": []},
+          "replacement": {"status": "not-applicable", "rationale": "The demonstration field contains only its irreducible root contract.", "evidence_ids": []},
+          "reordering": {"status": "not-applicable", "rationale": "The demonstration field contains only its irreducible root contract.", "evidence_ids": []},
+          "compression": {"status": "not-applicable", "rationale": "The demonstration field contains only its irreducible root contract.", "evidence_ids": []},
+          "closure": {"status": "not-applicable", "rationale": "The demonstration field contains only its irreducible root contract.", "evidence_ids": []},
+          "cycle": {"status": "not-applicable", "rationale": "The demonstration field contains only its irreducible root contract.", "evidence_ids": []},
+          "hollow_abstraction": {"status": "not-applicable", "rationale": "The demonstration field contains only its irreducible root contract.", "evidence_ids": []}
+        },
+        "evidence_status": "explicit",
+        "validity": "valid"
+      }
+    ],
+    "selected": "K-F0",
+    "selection_reason": "The root contract is the complete center of this minimal executable gate demonstration.",
+    "selection_evidence": []
+  },
+  "field_update": {
+    "status": "field_form",
+    "phase": "execution-stable",
+    "contract_status": "stable-for-execution"
+  }
+}

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Address Engine"
+  short_description: "让原始信息在递归动力场中获得身份、动态地址与可执行位置"
+  default_prompt: "Use $recursive-field-addressing to map this raw information into field-relative identities, dynamic addresses, and an auditable executable-address view."
+
+policy:
+  allow_implicit_invocation: false

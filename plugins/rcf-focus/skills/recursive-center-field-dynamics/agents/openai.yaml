@@ -1,0 +1,7 @@
+interface:
+  display_name: "Focus — Stable Task Execution"
+  short_description: "Stabilize complex tasks before executing them"
+  default_prompt: "Use $recursive-center-field-dynamics to stabilize this task, confirm F0, and execute the legal next steps."
+
+policy:
+  allow_implicit_invocation: false
