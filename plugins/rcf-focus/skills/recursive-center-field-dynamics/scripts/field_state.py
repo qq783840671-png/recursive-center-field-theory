@@ -21,6 +21,9 @@ EVENT_TYPES = {
     "UPDATE_STRUCTURE",
     "UPDATE_RECONCILE",
     "F0_CONFIRM",
+    "F0_CHECKPOINT",
+    "RUN_OPEN",
+    "RUN_RENDER",
     "FIELD_FORM",
     "CENTER_ADJUST",
     "HUMAN_CALIBRATE",
@@ -180,6 +183,7 @@ CENTER_TEST_NAMES = {
 }
 CENTER_TEST_STATUSES = {"unvalidated", "pass", "fail", "not-applicable"}
 FRONTIER_TYPES = {"action", "expansion", "compressed"}
+EXPANSION_REQUIREMENTS = {"required", "latent"}
 COMPRESSED_EXPOSURES = {"compressed", "locked", "reopen-required"}
 GLOBAL_DEFER_REASONS = {
     "budget",
@@ -206,6 +210,8 @@ CONTRACT_STATUSES = {
 }
 CALIBRATION_STATUSES = {"not-required", "required", "resolved"}
 F0_CONFIRMATION_STATUSES = {"required", "confirmed", "bypassed"}
+MOTION_PROFILE_STATUSES = {"unset", "open", "rendered"}
+RUN_MODES = {"action", "inquiry", "clarify"}
 ROOT_CONTRACT_FIELDS = {
     "root_goal",
     "boundary",
@@ -405,6 +411,32 @@ def child_snapshot_hash(snapshot: dict[str, Any]) -> str | None:
     except (TypeError, ValueError):
         return None
     return "sha256:" + hashlib.sha256(payload).hexdigest()
+
+
+def empty_motion_profile() -> dict[str, Any]:
+    return {
+        "status": "unset",
+        "mode": None,
+        "global_count": None,
+        "focus_count": None,
+        "continue_until_terminal": None,
+        "starting_recursive_round": None,
+        "confirmation_version": None,
+        "checkpoint_hash": None,
+        "opened_at_runtime_version": None,
+        "rendered_at_runtime_version": None,
+    }
+
+
+def empty_recursive_focus() -> dict[str, Any]:
+    """Return the enforced S0-to-Sn recursive Focus state."""
+    return {
+        "required_focus_rounds": 3,
+        "child_center_width": 3,
+        "s0_confirmation_version": None,
+        "current_snapshot_id": None,
+        "snapshots": [],
+    }
 
 
 def child_state_snapshot_issues(
@@ -638,6 +670,13 @@ def child_field_opening_issues(
 ) -> list[str]:
     """Validate the compact certificate behind a generated recursive address."""
     address = node.get("address")
+    legacy_display_addresses = set(
+        state.get("address_dynamics", {}).get("legacy_display_addresses", [])
+    )
+    if address in legacy_display_addresses:
+        if node.get("modal_status") != "[◇]":
+            return ["legacy display label must remain [◇]"]
+        return []
     if focus_display_address(state, address) is None:
         return []
     opening_status = node.get("field_opening_status")
@@ -822,6 +861,7 @@ def audit_path(
     uncertain_reasons: list[str] = []
     roots = legal_roots(state)
     node_map, relation_map = order_indexes(state)
+    graph_node_map, _ = joint_graph_indexes(state)
     compressed_map = compressed_indexes(state)
     panorama = state.get("panorama", {})
     order = panorama.get("order", {}) if isinstance(panorama, dict) else {}
@@ -976,7 +1016,11 @@ def audit_path(
             )
 
     if require_action_ready:
-        active_node = node_map.get(str(address), {})
+        # Opening certificates belong to the semantic graph.  The derived
+        # dependency-order projection intentionally omits those graph-only
+        # fields, so consulting it here made every recursive Ready address
+        # appear unvalidated after an order rebuild.
+        active_node = graph_node_map.get(str(address), {})
         if (
             focus_display_address(state, str(address)) is not None
             and active_node.get("field_opening_status") != "validated"
@@ -1429,15 +1473,22 @@ def normalize_joint_frontiers(
     audit_state = copy.deepcopy(state)
     audit_state["panorama"]["frontiers"]["compressed"] = normalized["compressed"]
     for frontier_type in ("action", "expansion"):
-        normalized[frontier_type] = [
-            normalize_joint_path(
+        normalized_items: list[dict[str, Any]] = []
+        for item in frontiers[frontier_type]:
+            normalized_item = normalize_joint_path(
                 audit_state,
                 item,
                 modal_status="[◇]",
                 require_action_ready=frontier_type == "action",
             )
-            for item in frontiers[frontier_type]
-        ]
+            normalized_item.setdefault("residual_ids", [])
+            normalized_item.setdefault("latent_residual_ids", [])
+            if frontier_type == "expansion":
+                normalized_item["expansion_requirement"] = item.get(
+                    "expansion_requirement", "latent"
+                )
+            normalized_items.append(normalized_item)
+        normalized[frontier_type] = normalized_items
     return normalized
 
 
@@ -1531,6 +1582,128 @@ def validate_joint_residual_record(
     return errors
 
 
+def validate_latent_residual_record(
+    residual: Any, label: str, *, archived: bool = False
+) -> list[str]:
+    """Validate Λ_t without treating it as an active F0 residual."""
+    errors: list[str] = []
+    if not isinstance(residual, dict):
+        return [f"{label} must be an object"]
+    if not nonempty_string(residual.get("id")):
+        errors.append(f"{label}.id must be non-empty")
+    if residual.get("classification") != "latent-residual":
+        errors.append(f"{label}.classification must be latent-residual")
+    if residual.get("residual_type") not in RESIDUAL_TYPES:
+        errors.append(f"{label}.residual_type is invalid")
+    for field_name in (
+        "description",
+        "potential_effect_on_f0",
+        "activation_condition",
+    ):
+        if not nonempty_string(residual.get(field_name)):
+            errors.append(f"{label}.{field_name} must be non-empty")
+    produced_by = residual.get("produced_by")
+    if not isinstance(produced_by, dict):
+        errors.append(f"{label}.produced_by must be an object")
+    else:
+        if produced_by.get("motion") not in JOINT_MOTION_TYPES:
+            errors.append(f"{label}.produced_by.motion is invalid")
+        if produced_by.get("address") is not None and not nonempty_string(
+            produced_by.get("address")
+        ):
+            errors.append(f"{label}.produced_by.address must be null or non-empty")
+    binding = residual.get("address_binding")
+    if binding is None:
+        # Legacy schema 2.2 records used address modality on Λ_t. Accept them for
+        # compatibility, but new records must use address_binding instead.
+        if residual.get("modal_status") != "[◇]":
+            errors.append(
+                f"{label} legacy record needs modal_status [◇] or a new address_binding"
+            )
+    elif not isinstance(binding, dict):
+        errors.append(f"{label}.address_binding must be an object")
+    else:
+        kind = binding.get("kind")
+        if kind not in {"bound", "candidate", "unaddressed"}:
+            errors.append(f"{label}.address_binding.kind is invalid")
+        elif kind == "bound" and not nonempty_string(binding.get("address_id")):
+            errors.append(f"{label}.address_binding.address_id must be non-empty")
+        elif kind == "candidate" and not nonempty_string(
+            binding.get("candidate_address_id")
+        ):
+            errors.append(
+                f"{label}.address_binding.candidate_address_id must be non-empty"
+            )
+        if residual.get("modal_status") is not None:
+            errors.append(f"{label} new address_binding record must not carry modal_status")
+    if residual.get("possible_destination") not in RESIDUAL_DESTINATIONS:
+        errors.append(f"{label}.possible_destination is invalid")
+    if residual.get("evidence_status") not in EVIDENCE_STATUSES:
+        errors.append(f"{label}.evidence_status is invalid")
+    relation = residual.get("address_relation")
+    if binding is not None:
+        if relation is not None:
+            errors.append(
+                f"{label} new address_binding record must not also use legacy address_relation"
+            )
+    elif not isinstance(relation, dict):
+        errors.append(f"{label}.address_relation must be an object")
+    else:
+        kind = relation.get("kind")
+        if kind not in {"frontier", "hypothesized"}:
+            errors.append(
+                f"{label}.address_relation.kind must be frontier or hypothesized"
+            )
+        if not nonempty_string(relation.get("address")):
+            errors.append(f"{label}.address_relation.address must be non-empty")
+        if relation.get("gate_status") not in {"legal", "unverified"}:
+            errors.append(f"{label}.address_relation.gate_status is invalid")
+        reach = relation.get("reach")
+        if not isinstance(reach, dict):
+            errors.append(f"{label}.address_relation.reach must be an object")
+        else:
+            if reach.get("kind") not in {"next", "finite-deep", "unknown"}:
+                errors.append(f"{label}.address_relation.reach.kind is invalid")
+            estimate = reach.get("estimated_expansions")
+            if estimate is not None and (
+                not isinstance(estimate, int) or estimate < 0
+            ):
+                errors.append(
+                    f"{label}.address_relation.reach.estimated_expansions must be null or non-negative"
+                )
+            if reach.get("evidence_status") not in EVIDENCE_STATUSES:
+                errors.append(
+                    f"{label}.address_relation.reach.evidence_status is invalid"
+                )
+        conflicts = relation.get("conflict_with")
+        if not isinstance(conflicts, list) or not all(
+            nonempty_string(item) for item in conflicts
+        ):
+            errors.append(
+                f"{label}.address_relation.conflict_with must be a string list"
+            )
+    activation_status = residual.get("activation_status")
+    if archived:
+        if activation_status not in {
+            "activated",
+            "absorbed",
+            "dismissed",
+            "absorbed-local",
+            "required-frontier",
+            "address-birth",
+            "active-residual",
+            "externalized",
+        }:
+            errors.append(f"{label}.activation_status is invalid for history")
+        if not isinstance(residual.get("transitioned_by"), dict):
+            errors.append(f"{label}.transitioned_by must be an object")
+        if not isinstance(residual.get("transitioned_at_version"), int):
+            errors.append(f"{label}.transitioned_at_version must be an integer")
+    elif activation_status != "latent":
+        errors.append(f"{label}.activation_status must be latent")
+    return errors
+
+
 def validate_address_dynamics_22(
     state: dict[str, Any], evidence_ids: set[str], residual_ids: set[str]
 ) -> list[str]:
@@ -1544,6 +1717,31 @@ def validate_address_dynamics_22(
         errors.append("address_dynamics missing keys: " + ", ".join(missing))
     if dynamics.get("root_address") != "F0":
         errors.append("address_dynamics.root_address must remain F0")
+
+    legacy_display_addresses = dynamics.get("legacy_display_addresses", [])
+    if not isinstance(legacy_display_addresses, list) or not all(
+        is_strict_theory_address(item) and focus_display_address(state, item) is not None
+        for item in legacy_display_addresses
+    ):
+        errors.append(
+            "address_dynamics.legacy_display_addresses must contain recursive F0-facing labels"
+        )
+        legacy_display_addresses = []
+    if len(legacy_display_addresses) != len(set(legacy_display_addresses)):
+        errors.append("address_dynamics.legacy_display_addresses contains duplicates")
+
+    active_or_frontier_addresses = {
+        item.get("address")
+        for item in state.get("focus", {}).get("active_paths", [])
+        if isinstance(item, dict)
+    }
+    for items in state.get("panorama", {}).get("frontiers", {}).values():
+        if isinstance(items, list):
+            active_or_frontier_addresses.update(
+                item.get("address") for item in items if isinstance(item, dict)
+            )
+    if set(legacy_display_addresses) & active_or_frontier_addresses:
+        errors.append("legacy display labels cannot enter Focus or any frontier")
 
     inbox = dynamics.get("inbox")
     if not isinstance(inbox, list):
@@ -1996,6 +2194,8 @@ def validate_joint_state(state: dict[str, Any]) -> list[str]:
         errors.append(f"joint schema missing top-level keys: {', '.join(missing)}")
     if current_22 and "address_dynamics" not in state:
         errors.append("schema 2.2 missing top-level key: address_dynamics")
+    if current_22:
+        errors.extend(validate_recursive_focus_state(state))
 
     def string_list(value: Any, label: str, *, nonempty: bool = False) -> list[str]:
         if not isinstance(value, list) or not all(nonempty_string(item) for item in value):
@@ -2102,6 +2302,36 @@ def validate_joint_state(state: dict[str, Any]) -> list[str]:
                         errors.append(
                             "confirmed_at_runtime_version must reference the current history"
                         )
+            checkpoint = field.get("f0_checkpoint")
+            if checkpoint is not None:
+                if not isinstance(checkpoint, dict):
+                    errors.append("field.f0_checkpoint must be null or an object")
+                else:
+                    if not re.fullmatch(
+                        r"sha256:[0-9a-f]{64}", str(checkpoint.get("fingerprint", ""))
+                    ):
+                        errors.append("field.f0_checkpoint.fingerprint is invalid")
+                    displayed_at = checkpoint.get("displayed_at_runtime_version")
+                    if (
+                        not isinstance(displayed_at, int)
+                        or isinstance(displayed_at, bool)
+                        or displayed_at < 0
+                        or displayed_at > state.get("version", -1)
+                    ):
+                        errors.append(
+                            "field.f0_checkpoint.displayed_at_runtime_version is invalid"
+                        )
+                    if not isinstance(checkpoint.get("map_version"), int):
+                        errors.append("field.f0_checkpoint.map_version must be an integer")
+            if isinstance(confirmation, dict) and confirmation.get("status") == "confirmed":
+                confirmed_checkpoint = confirmation.get("checkpoint_hash")
+                if confirmed_checkpoint is not None and (
+                    not isinstance(checkpoint, dict)
+                    or confirmed_checkpoint != checkpoint.get("fingerprint")
+                ):
+                    errors.append(
+                        "confirmed F0 checkpoint_hash must match the displayed checkpoint"
+                    )
 
     panorama = state.get("panorama")
     if not isinstance(panorama, dict):
@@ -2544,6 +2774,49 @@ def validate_joint_state(state: dict[str, Any]) -> list[str]:
             errors.append("panorama.residual_history contains duplicate ids")
         if set(history_ids) & set(residual_ids):
             errors.append("a residual id cannot be active and archived simultaneously")
+        latent_residuals = panorama.get("latent_residuals", [])
+        if not isinstance(latent_residuals, list):
+            errors.append("panorama.latent_residuals must be a list")
+            latent_residuals = []
+        latent_residual_ids: list[str] = []
+        for index, residual in enumerate(latent_residuals):
+            errors.extend(
+                validate_latent_residual_record(
+                    residual, f"panorama.latent_residuals[{index}]"
+                )
+            )
+            if isinstance(residual, dict) and nonempty_string(residual.get("id")):
+                latent_residual_ids.append(residual["id"])
+        if len(latent_residual_ids) != len(set(latent_residual_ids)):
+            errors.append("panorama.latent_residuals contains duplicate ids")
+        latent_history = panorama.get("latent_residual_history", [])
+        if not isinstance(latent_history, list):
+            errors.append("panorama.latent_residual_history must be a list")
+            latent_history = []
+        latent_history_ids: list[str] = []
+        for index, residual in enumerate(latent_history):
+            errors.extend(
+                validate_latent_residual_record(
+                    residual,
+                    f"panorama.latent_residual_history[{index}]",
+                    archived=True,
+                )
+            )
+            if isinstance(residual, dict) and nonempty_string(residual.get("id")):
+                latent_history_ids.append(residual["id"])
+        if len(latent_history_ids) != len(set(latent_history_ids)):
+            errors.append("panorama.latent_residual_history contains duplicate ids")
+        if set(latent_history_ids) & set(latent_residual_ids):
+            errors.append(
+                "a latent residual id cannot be current and archived simultaneously"
+            )
+        if set(latent_residual_ids) & set(residual_ids):
+            errors.append(
+                "a residual id cannot be both latent and active simultaneously"
+            )
+    else:
+        latent_residuals = []
+        latent_residual_ids = []
     for component in components:
         if component["residual_id"] not in residual_ids:
             errors.append(f"SCC residual is missing: {component['residual_id']}")
@@ -2620,6 +2893,12 @@ def validate_joint_state(state: dict[str, Any]) -> list[str]:
                     errors.append(f"{label} must be dependency-ready")
                 if not isinstance(item.get("task_scores"), dict):
                     errors.append(f"{label}.task_scores must be an object")
+                if (
+                    frontier_type == "expansion"
+                    and item.get("expansion_requirement", "latent")
+                    not in EXPANSION_REQUIREMENTS
+                ):
+                    errors.append(f"{label}.expansion_requirement is invalid")
             else:
                 if item.get("structural_status") not in {"required-ancestor", "optional"}:
                     errors.append(f"{label}.structural_status is invalid")
@@ -2643,6 +2922,17 @@ def validate_joint_state(state: dict[str, Any]) -> list[str]:
                     errors.append(f"{label}.residual_ids must be a string list")
                 elif set(linked_residuals) - set(residual_ids):
                     errors.append(f"{label}.residual_ids references unknown active residuals")
+                linked_latent_residuals = item.get("latent_residual_ids", [])
+                if not isinstance(linked_latent_residuals, list) or not all(
+                    nonempty_string(item_id) for item_id in linked_latent_residuals
+                ):
+                    errors.append(
+                        f"{label}.latent_residual_ids must be a string list"
+                    )
+                elif set(linked_latent_residuals) - set(latent_residual_ids):
+                    errors.append(
+                        f"{label}.latent_residual_ids references unknown latent residuals"
+                    )
     all_frontier_addresses = [
         address for addresses in frontier_addresses.values() for address in addresses
     ]
@@ -2650,6 +2940,55 @@ def validate_joint_state(state: dict[str, Any]) -> list[str]:
         errors.append("an address cannot occur in multiple frontier classes")
     if set(all_frontier_addresses) & set(explored):
         errors.append("a frontier address cannot already be realized")
+
+    if current:
+        expansion_addresses = frontier_addresses["expansion"]
+        expansion_items = {
+            item.get("address"): item
+            for item in frontiers.get("expansion", [])
+            if isinstance(item, dict) and nonempty_string(item.get("address"))
+        }
+        for index, residual in enumerate(residuals):
+            if not isinstance(residual, dict):
+                continue
+            relation = residual.get("address_relation")
+            if not isinstance(relation, dict):
+                continue
+            if (
+                residual.get("modal_status") == "[◇]"
+                and residual.get("absorption_status") == "unresolved"
+                and relation.get("kind") == "frontier"
+                and relation.get("gate_status") == "legal"
+                and relation.get("address") not in expansion_addresses
+            ):
+                errors.append(
+                    "panorama.residuals["
+                    f"{index}].address_relation must retain its legal address "
+                    "in the Expansion frontier; absorb or migrate the residual "
+                    "in the same motion that replaces that address"
+                )
+        for index, residual in enumerate(latent_residuals):
+            if not isinstance(residual, dict):
+                continue
+            relation = residual.get("address_relation")
+            if not isinstance(relation, dict):
+                continue
+            address = relation.get("address")
+            if relation.get("kind") == "frontier":
+                frontier_item = expansion_items.get(address)
+                if not isinstance(frontier_item, dict):
+                    errors.append(
+                        "panorama.latent_residuals["
+                        f"{index}].address_relation must retain its address "
+                        "in the Expansion frontier"
+                    )
+                elif frontier_item.get(
+                    "expansion_requirement", "latent"
+                ) != "latent":
+                    errors.append(
+                        "panorama.latent_residuals["
+                        f"{index}] must link to an ordinary latent Expansion frontier"
+                    )
 
     global_expansion = panorama.get("global_expansion")
     if not isinstance(global_expansion, dict):
@@ -2783,7 +3122,7 @@ def validate_joint_state(state: dict[str, Any]) -> list[str]:
     if current_22:
         confirmation_status = field.get("f0_confirmation", {}).get("status")
         decision = execution.get("last_decision")
-        if confirmation_status == "required" and decision not in {
+        if confirmation_status != "confirmed" and decision not in {
             "FIELD_FORMATION_REQUIRED",
             "HUMAN_CALIBRATION_REQUIRED",
             "REMODEL_REQUIRED",
@@ -2794,7 +3133,7 @@ def validate_joint_state(state: dict[str, Any]) -> list[str]:
                 "an unconfirmed field requires a formation, calibration, remodel, ascent, or F0-confirmation decision"
             )
         if (
-            confirmation_status in {"confirmed", "bypassed"}
+            confirmation_status == "confirmed"
             and field.get("phase") in {"forming", "stabilizing"}
             and center.get("selected") is None
             and decision in {"FOCUS_REQUIRED", "CONTINUE_EXECUTION", "F0_COMPLETE"}
@@ -2802,6 +3141,119 @@ def validate_joint_state(state: dict[str, Any]) -> list[str]:
             errors.append(
                 "field formation without a selected center cannot claim Focus, execution, or F0 completion as the next decision"
             )
+        profile = execution.get("motion_profile")
+        if profile is not None:
+            if not isinstance(profile, dict):
+                errors.append("execution.motion_profile must be an object")
+            else:
+                profile_status = profile.get("status")
+                if profile_status not in MOTION_PROFILE_STATUSES:
+                    errors.append("execution.motion_profile.status is invalid")
+                if profile_status == "unset":
+                    for name in (
+                        "mode",
+                        "global_count",
+                        "focus_count",
+                        "continue_until_terminal",
+                        "starting_recursive_round",
+                        "confirmation_version",
+                        "checkpoint_hash",
+                        "opened_at_runtime_version",
+                        "rendered_at_runtime_version",
+                    ):
+                        if profile.get(name) is not None:
+                            errors.append(
+                                f"unset execution.motion_profile.{name} must be null"
+                            )
+                elif profile_status in {"open", "rendered"}:
+                    if profile.get("mode") not in RUN_MODES:
+                        errors.append("execution.motion_profile.mode is invalid")
+                    for name in ("global_count", "focus_count"):
+                        value = profile.get(name)
+                        if (
+                            not isinstance(value, int)
+                            or isinstance(value, bool)
+                            or value < 0
+                        ):
+                            errors.append(
+                                f"execution.motion_profile.{name} must be non-negative"
+                            )
+                    if profile.get("continue_until_terminal") is not True:
+                        errors.append(
+                            "execution.motion_profile.continue_until_terminal must be true"
+                        )
+                    if profile.get("global_count") == profile.get("focus_count") == 0:
+                        errors.append("execution.motion_profile requires at least one motion")
+                    for name in (
+                        "confirmation_version",
+                        "opened_at_runtime_version",
+                        "starting_recursive_round",
+                    ):
+                        value = profile.get(name)
+                        if (
+                            not isinstance(value, int)
+                            or isinstance(value, bool)
+                            or value < 0
+                            or value > state.get("version", -1)
+                        ):
+                            errors.append(
+                                f"execution.motion_profile.{name} is invalid"
+                            )
+                    if not re.fullmatch(
+                        r"sha256:[0-9a-f]{64}",
+                        str(profile.get("checkpoint_hash", "")),
+                    ):
+                        errors.append(
+                            "execution.motion_profile.checkpoint_hash is invalid"
+                        )
+                    rendered_at = profile.get("rendered_at_runtime_version")
+                    if profile_status == "open" and rendered_at is not None:
+                        errors.append(
+                            "open execution.motion_profile cannot have rendered provenance"
+                        )
+                    if profile_status == "rendered" and (
+                        not isinstance(rendered_at, int)
+                        or isinstance(rendered_at, bool)
+                        or rendered_at < profile.get("opened_at_runtime_version", 0)
+                        or rendered_at > state.get("version", -1)
+                    ):
+                        errors.append(
+                            "rendered execution.motion_profile needs valid rendered provenance"
+                        )
+        if decision == "F0_COMPLETE":
+            if not isinstance(profile, dict) or profile.get("status") not in {
+                "open",
+                "rendered",
+            }:
+                errors.append("F0_COMPLETE requires an auditable motion profile")
+            elif all(
+                isinstance(profile.get(name), int)
+                for name in (
+                    "global_count",
+                    "focus_count",
+                    "opened_at_runtime_version",
+                )
+            ):
+                try:
+                    progress = motion_profile_progress(state)
+                except ValueError as exc:
+                    errors.append(f"F0_COMPLETE runtime proof is invalid: {exc}")
+                else:
+                    if (
+                        progress["global_count"] != profile["global_count"]
+                        or progress["focus_count"] != profile["focus_count"]
+                    ):
+                        errors.append(
+                            "F0_COMPLETE requires the complete requested motion profile"
+                        )
+                    if profile.get("mode") == "action" and not progress[
+                        "execute_events"
+                    ]:
+                        errors.append("Action-mode F0_COMPLETE requires audited execution")
+            if panorama.get("residuals"):
+                errors.append("F0_COMPLETE cannot retain active residuals")
+            if frontier_addresses["action"] or execution_queue:
+                errors.append("F0_COMPLETE cannot retain executable pending work")
     if current:
         subgraph = execution.get("subgraph")
         if not isinstance(subgraph, dict):
@@ -3625,6 +4077,7 @@ def append_event(
     note: str,
     address: str | None = None,
     residual_audit: dict[str, Any] | None = None,
+    details: dict[str, Any] | None = None,
 ) -> None:
     state["version"] += 1
     event = {
@@ -3636,6 +4089,8 @@ def append_event(
     }
     if residual_audit is not None:
         event["residual_audit"] = residual_audit
+    if details is not None:
+        event["details"] = copy.deepcopy(details)
     state["history"].append(event)
 
 
@@ -3664,6 +4119,7 @@ def cmd_init(args: argparse.Namespace) -> int:
                 "confirmed_by": None,
                 "confirmed_at_runtime_version": None,
             },
+            "f0_checkpoint": None,
             "ambiguities": [],
             "human_calibration": {"status": "not-required", "items": []},
         },
@@ -3717,6 +4173,8 @@ def cmd_init(args: argparse.Namespace) -> int:
             "external": [],
             "residuals": [],
             "residual_history": [],
+            "latent_residuals": [],
+            "latent_residual_history": [],
             "modal_results": [],
             "order": {
                 "status": "tentative",
@@ -3749,7 +4207,9 @@ def cmd_init(args: argparse.Namespace) -> int:
             "subgraph": {"nodes": [], "relations": [], "join_nodes": []},
             "node_status": {},
             "ready": [],
+            "motion_profile": empty_motion_profile(),
         },
+        "recursive_focus": empty_recursive_focus(),
         "evidence": [],
         "drift": {
             "baseline": {
@@ -3872,14 +4332,16 @@ def cmd_summary(args: argparse.Namespace) -> int:
         print(
             "frontiers: "
             f"Action={len(frontiers.get('action', []))}, "
-            f"Expansion={len(frontiers.get('expansion', []))}, "
+            f"ExpansionRequired={expansion_frontier_counts(state)['required']}, "
+            f"ExpansionLatent={expansion_frontier_counts(state)['latent']}, "
             f"Compressed={len(frontiers.get('compressed', []))}"
         )
         print(f"focus: {focus.get('query') or '(unfocused)'}")
         print(
             "state S: "
             f"M={len(panorama.get('explored', []))}, "
-            f"R={len(panorama.get('residuals', []))}, "
+            f"Lambda={len(panorama.get('latent_residuals', []))}, "
+            f"R_active={len(panorama.get('residuals', []))}, "
             f"Frontier={sum(len(frontiers.get(name, [])) for name in FRONTIER_TYPES)}"
         )
         audits = state.get("drift", {}).get("audits", [])
@@ -3996,6 +4458,820 @@ def cmd_summary(args: argparse.Namespace) -> int:
     return 0
 
 
+def f0_checkpoint_fingerprint(state: dict[str, Any]) -> str | None:
+    """Bind confirmation to the constitutive contract and selected center sub-poset."""
+    field = state.get("field", {})
+    center = selected_center_record(state)
+    node_map, relation_map = order_indexes(state)
+    center_members = center.get("members", []) if isinstance(center, dict) else []
+    center_relations = center.get("relation_ids", []) if isinstance(center, dict) else []
+    payload = {
+        "root_contract": {
+            name: copy.deepcopy(field.get(name))
+            for name in sorted(ROOT_CONTRACT_FIELDS)
+        },
+        "selected_center": copy.deepcopy(center),
+        "center_nodes": [copy.deepcopy(node_map.get(item)) for item in center_members],
+        "center_relations": [
+            copy.deepcopy(relation_map.get(item)) for item in center_relations
+        ],
+    }
+    return child_snapshot_hash(payload)
+
+
+def center_axis_text(state: dict[str, Any]) -> str:
+    center = selected_center_record(state)
+    if not isinstance(center, dict):
+        return "(无已验证中心)"
+    members = [item for item in center.get("members", []) if nonempty_string(item)]
+    if not members:
+        return "(空中心)"
+    member_set = set(members)
+    _, relation_map = order_indexes(state)
+    relations = [
+        relation_map[item]
+        for item in center.get("relation_ids", [])
+        if item in relation_map
+        and relation_map[item].get("predecessor") in member_set
+        and relation_map[item].get("successor") in member_set
+    ]
+    adjacency: dict[str, set[str]] = {member: set() for member in members}
+    indegree = {member: 0 for member in members}
+    for relation in relations:
+        source = relation["predecessor"]
+        target = relation["successor"]
+        if target not in adjacency[source]:
+            adjacency[source].add(target)
+            indegree[target] += 1
+    node_map, _ = joint_graph_indexes(state)
+
+    def label(address: str) -> str:
+        short = address.split(":", 1)[-1] if ":" in address else address
+        function = node_map.get(address, {}).get("function")
+        return f"{short} {function}" if nonempty_string(function) else short
+
+    layers: list[str] = []
+    remaining = set(members)
+    while remaining:
+        ready = sorted(item for item in remaining if indegree[item] == 0)
+        if not ready:
+            return "(中心偏序含环，需重构)"
+        layers.append(" ∥ ".join(label(item) for item in ready))
+        for item in ready:
+            remaining.remove(item)
+            for successor in adjacency[item]:
+                indegree[successor] -= 1
+    return " → ".join(layers)
+
+
+def recursive_snapshot_hash(snapshot: dict[str, Any]) -> str | None:
+    payload = copy.deepcopy(snapshot)
+    payload.pop("state_hash", None)
+    return child_snapshot_hash(payload)
+
+
+def address_interface_hash(state: dict[str, Any], address: str) -> str | None:
+    """Hash the parent-facing function and required dependency interface."""
+    node_map, relation_map = joint_graph_indexes(state)
+    node = node_map.get(address)
+    if not isinstance(node, dict):
+        return None
+    relations = []
+    for relation in relation_map.values():
+        if (
+            relation.get("relation_type") != "dependency"
+            or relation.get("necessity") != "required"
+            or address not in {relation.get("source"), relation.get("target")}
+        ):
+            continue
+        other = (
+            relation.get("target")
+            if relation.get("source") == address
+            else relation.get("source")
+        )
+        # Opening children adds internal dependencies but must not rewrite the
+        # parent's outward contract with its own predecessors/successors.
+        if node_map.get(other, {}).get("parent_address") == address:
+            continue
+        relations.append(
+            {
+                "id": relation.get("id"),
+                "source": relation.get("source"),
+                "target": relation.get("target"),
+                "necessity": relation.get("necessity"),
+                "validity": relation.get("validity"),
+            }
+        )
+    payload = {
+        "address": address,
+        "node_id": node.get("node_id"),
+        "payload_revision": node.get("payload_revision"),
+        "function": node.get("function"),
+        "relations": sorted(relations, key=lambda item: str(item.get("id"))),
+    }
+    return child_snapshot_hash(payload)
+
+
+def _snapshot_is_acyclic(addresses: list[str], relations: list[dict[str, Any]]) -> bool:
+    address_set = set(addresses)
+    adjacency = {address: set() for address in addresses}
+    indegree = {address: 0 for address in addresses}
+    for relation in relations:
+        source = relation.get("source")
+        target = relation.get("target")
+        if source not in address_set or target not in address_set or source == target:
+            return False
+        if target not in adjacency[source]:
+            adjacency[source].add(target)
+            indegree[target] += 1
+    ready = [address for address, degree in indegree.items() if degree == 0]
+    visited = 0
+    while ready:
+        current = ready.pop()
+        visited += 1
+        for target in adjacency[current]:
+            indegree[target] -= 1
+            if indegree[target] == 0:
+                ready.append(target)
+    return visited == len(addresses)
+
+
+def build_s0_snapshot(state: dict[str, Any], confirmation_version: int) -> dict[str, Any]:
+    center = selected_center_record(state)
+    if not isinstance(center, dict):
+        raise ValueError("S0 requires a selected, evidence-tested center")
+    members = [
+        address
+        for address in center.get("members", [])
+        if nonempty_string(address) and address != state["field"]["id"]
+    ]
+    if not members:
+        members = [state["field"]["id"]]
+    member_set = set(members)
+    _, order_relation_map = order_indexes(state)
+    relations = []
+    for relation_id in center.get("relation_ids", []):
+        relation = order_relation_map.get(relation_id)
+        if not isinstance(relation, dict):
+            continue
+        source = relation.get("predecessor")
+        target = relation.get("successor")
+        if source in member_set and target in member_set:
+            relations.append(
+                {
+                    "source": source,
+                    "target": target,
+                    "kind": "center-dependency",
+                    "source_relation_id": relation_id,
+                }
+            )
+    if not _snapshot_is_acyclic(members, relations):
+        raise ValueError("S0 center sub-poset must be acyclic and internally closed")
+    snapshot = {
+        "state_id": "S0",
+        "focus_round": 0,
+        "source_state_id": None,
+        "active_addresses": members,
+        "active_relations": relations,
+        "expanded_parent_addresses": [],
+        "replacement_records": [],
+        "closure_status": "relative-closed",
+        "f0_checkpoint_hash": state["field"]["f0_checkpoint"]["fingerprint"],
+        "formed_at_runtime_version": confirmation_version,
+    }
+    snapshot["state_hash"] = recursive_snapshot_hash(snapshot)
+    return snapshot
+
+
+def validate_recursive_focus_state(state: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    recursive = state.get("recursive_focus")
+    if not isinstance(recursive, dict):
+        # Earlier schema-2.2 snapshots remain readable. New motion commands
+        # refuse to run until S0 is committed under the strict surface.
+        return []
+    if recursive.get("required_focus_rounds") != 3:
+        errors.append("recursive_focus.required_focus_rounds must be 3")
+    if recursive.get("child_center_width") != 3:
+        errors.append("recursive_focus.child_center_width must be 3")
+    snapshots = recursive.get("snapshots")
+    if not isinstance(snapshots, list) or not all(isinstance(item, dict) for item in snapshots):
+        return [*errors, "recursive_focus.snapshots must be a list of objects"]
+    expected_ids = [f"S{index}" for index in range(len(snapshots))]
+    actual_ids = [item.get("state_id") for item in snapshots]
+    if actual_ids != expected_ids:
+        errors.append("recursive_focus snapshots must be contiguous S0, S1, ...")
+    if snapshots and recursive.get("current_snapshot_id") != snapshots[-1].get("state_id"):
+        errors.append("recursive_focus.current_snapshot_id must name the latest snapshot")
+    if not snapshots and recursive.get("current_snapshot_id") is not None:
+        errors.append("recursive_focus.current_snapshot_id must be null before S0")
+    for index, snapshot in enumerate(snapshots):
+        label = f"recursive_focus.snapshots[{index}]"
+        addresses = snapshot.get("active_addresses")
+        relations = snapshot.get("active_relations")
+        if not isinstance(addresses, list) or not all(nonempty_string(item) for item in addresses):
+            errors.append(f"{label}.active_addresses must be a string list")
+            addresses = []
+        elif len(addresses) != len(set(addresses)):
+            errors.append(f"{label}.active_addresses contains duplicates")
+        if not isinstance(relations, list) or not all(isinstance(item, dict) for item in relations):
+            errors.append(f"{label}.active_relations must be a list of objects")
+            relations = []
+        if addresses and not _snapshot_is_acyclic(addresses, relations):
+            errors.append(f"{label} active sub-poset must be acyclic")
+        if snapshot.get("focus_round") != index:
+            errors.append(f"{label}.focus_round must equal {index}")
+        if snapshot.get("closure_status") != "relative-closed":
+            errors.append(f"{label}.closure_status must be relative-closed")
+        if snapshot.get("state_hash") != recursive_snapshot_hash(snapshot):
+            errors.append(f"{label}.state_hash is invalid")
+        if index and snapshot.get("source_state_id") != f"S{index - 1}":
+            errors.append(f"{label}.source_state_id must name S{index - 1}")
+    confirmation = state.get("field", {}).get("f0_confirmation", {})
+    if confirmation.get("status") == "confirmed":
+        if not snapshots or snapshots[0].get("state_id") != "S0":
+            errors.append("confirmed F0 requires a committed S0 snapshot")
+        if recursive.get("s0_confirmation_version") != confirmation.get(
+            "confirmed_at_runtime_version"
+        ):
+            errors.append("S0 must be bound to the F0 confirmation version")
+    return errors
+
+
+def apply_recursive_focus_round(
+    original_state: dict[str, Any],
+    state: dict[str, Any],
+    delta: dict[str, Any],
+    details: dict[str, Any],
+) -> dict[str, Any]:
+    recursive = state.get("recursive_focus")
+    if not isinstance(recursive, dict) or not recursive.get("snapshots"):
+        raise ValueError("FOCUS requires a confirmed S0 snapshot")
+    snapshots = recursive["snapshots"]
+    current = snapshots[-1]
+    round_index = int(current.get("focus_round", -1)) + 1
+    replacements = delta.get("recursive_replacements")
+    if not isinstance(replacements, list) or not replacements or not all(
+        isinstance(item, dict) for item in replacements
+    ):
+        raise ValueError(
+            "FOCUS requires one or more recursive_replacements; a round may expand multiple fields"
+        )
+    active = list(current.get("active_addresses", []))
+    active_set = set(active)
+    parent_addresses = [item.get("parent_address") for item in replacements]
+    if not all(nonempty_string(item) for item in parent_addresses):
+        raise ValueError("each recursive replacement needs a parent_address")
+    if len(parent_addresses) != len(set(parent_addresses)):
+        raise ValueError("a Focus round cannot replace the same parent twice")
+    missing_parents = sorted(set(parent_addresses) - active_set)
+    if missing_parents:
+        raise ValueError(
+            "Focus cannot cross levels; replacement parents must be active in the current snapshot: "
+            + ", ".join(missing_parents)
+        )
+    node_map, _ = joint_graph_indexes(state)
+    required_edges = {
+        (relation.get("source"), relation.get("target"))
+        for relation in required_dependency_relations(state)
+    }
+    replacement_map: dict[str, list[str]] = {}
+    records: list[dict[str, Any]] = []
+    all_children: list[str] = []
+    for replacement in replacements:
+        parent = replacement["parent_address"]
+        children = replacement.get("child_center_addresses")
+        if not isinstance(children, list) or len(children) != 3 or not all(
+            nonempty_string(item) for item in children
+        ):
+            raise ValueError(
+                f"recursive replacement {parent} must expose exactly three child center addresses"
+            )
+        if len(children) != len(set(children)) or set(children) & active_set:
+            raise ValueError(f"recursive replacement {parent} has duplicate or already-active children")
+        before_hash = address_interface_hash(original_state, parent)
+        after_hash = address_interface_hash(state, parent)
+        if before_hash is None or before_hash != after_hash:
+            raise ValueError(
+                f"recursive replacement {parent} changed the protected parent interface"
+            )
+        for child in children:
+            node = node_map.get(child)
+            if not isinstance(node, dict):
+                raise ValueError(f"recursive child {child} is absent from the graph")
+            if node.get("parent_address") != parent:
+                raise ValueError(f"recursive child {child} must bind directly to {parent}")
+            if (
+                node.get("validity") != "valid"
+                or node.get("field_opening_status") != "validated"
+            ):
+                raise ValueError(f"recursive child {child} lacks a validated child-field proof")
+        if (parent, children[0]) not in required_edges:
+            raise ValueError(
+                f"child center for {parent} lacks the required entry edge {parent} -> {children[0]}"
+            )
+        for predecessor, successor in zip(children, children[1:]):
+            if (predecessor, successor) not in required_edges:
+                raise ValueError(
+                    f"child center for {parent} lacks required order {predecessor} -> {successor}"
+                )
+        replacement_map[parent] = list(children)
+        all_children.extend(children)
+        records.append(
+            {
+                "parent_address": parent,
+                "child_center_addresses": list(children),
+                "parent_interface_hash": before_hash,
+            }
+        )
+    if len(all_children) != len(set(all_children)):
+        raise ValueError("children cannot be shared by two replacements in the same Focus round")
+
+    new_active: list[str] = []
+    for address in active:
+        new_active.extend(replacement_map.get(address, [address]))
+    if len(new_active) != len(active) + 2 * len(replacements):
+        raise ValueError("recursive Focus path length invariant failed")
+    entry = {address: replacement_map.get(address, [address])[0] for address in active}
+    exit_ = {address: replacement_map.get(address, [address])[-1] for address in active}
+    new_relations: list[dict[str, Any]] = []
+    for relation in current.get("active_relations", []):
+        source = relation.get("source")
+        target = relation.get("target")
+        if source in exit_ and target in entry:
+            new_relations.append(
+                {
+                    "source": exit_[source],
+                    "target": entry[target],
+                    "kind": "preserved-interface",
+                    "source_relation_id": relation.get("source_relation_id"),
+                }
+            )
+    for parent, children in replacement_map.items():
+        for predecessor, successor in zip(children, children[1:]):
+            new_relations.append(
+                {
+                    "source": predecessor,
+                    "target": successor,
+                    "kind": "child-center-dependency",
+                    "source_relation_id": next(
+                        (
+                            relation.get("id")
+                            for relation in required_dependency_relations(state)
+                            if relation.get("source") == predecessor
+                            and relation.get("target") == successor
+                        ),
+                        None,
+                    ),
+                }
+            )
+    if not _snapshot_is_acyclic(new_active, new_relations):
+        raise ValueError("recursive Focus produced a cyclic or non-closed active sub-poset")
+    snapshot = {
+        "state_id": f"S{round_index}",
+        "focus_round": round_index,
+        "source_state_id": current["state_id"],
+        "active_addresses": new_active,
+        "active_relations": new_relations,
+        "expanded_parent_addresses": list(parent_addresses),
+        "replacement_records": records,
+        "closure_status": "relative-closed",
+        "f0_checkpoint_hash": current["f0_checkpoint_hash"],
+        "formed_at_runtime_version": original_state["version"] + 1,
+    }
+    snapshot["state_hash"] = recursive_snapshot_hash(snapshot)
+    snapshots.append(snapshot)
+    recursive["current_snapshot_id"] = snapshot["state_id"]
+    details["recursive_snapshot_id"] = snapshot["state_id"]
+    details["recursive_replacement_count"] = len(replacements)
+    details["active_closure_address_count"] = len(new_active)
+    return snapshot
+
+
+def active_residual_modal_counts(state: dict[str, Any]) -> dict[str, int]:
+    counts = {"[◇]": 0, "[-]": 0, "[∅]": 0}
+    for residual in state.get("panorama", {}).get("residuals", []):
+        modal = residual.get("modal_status") if isinstance(residual, dict) else None
+        if modal in counts:
+            counts[modal] += 1
+    return counts
+
+
+def expansion_frontier_counts(state: dict[str, Any]) -> dict[str, int]:
+    counts = {"required": 0, "latent": 0}
+    for item in (
+        state.get("panorama", {})
+        .get("frontiers", {})
+        .get("expansion", [])
+    ):
+        if not isinstance(item, dict):
+            continue
+        requirement = item.get("expansion_requirement", "latent")
+        if requirement in counts:
+            counts[requirement] += 1
+    return counts
+
+
+def latent_residual_count(state: dict[str, Any]) -> int:
+    residuals = state.get("panorama", {}).get("latent_residuals", [])
+    return len(residuals) if isinstance(residuals, list) else 0
+
+
+def cmd_render_checkpoint(args: argparse.Namespace) -> int:
+    path = Path(args.path)
+    original_state = read_state(path)
+    errors = validate_state(original_state)
+    if errors:
+        raise ValueError("; ".join(errors))
+    if schema_version(original_state) != SCHEMA_JOINT:
+        raise ValueError("render-checkpoint requires schema 2.2")
+    if original_state["field"]["f0_confirmation"].get("status") != "required":
+        raise ValueError("render-checkpoint requires an unconfirmed formed candidate")
+    issues = f0_confirmation_candidate_issues(original_state)
+    if issues:
+        raise ValueError(
+            "F0 checkpoint blocked until forward formation closes: "
+            + "; ".join(issues)
+        )
+    fingerprint = f0_checkpoint_fingerprint(original_state)
+    if fingerprint is None:
+        raise ValueError("F0 checkpoint state is not canonically serializable")
+    state = copy.deepcopy(original_state)
+    target_version = original_state["version"] + 1
+    checkpoint = {
+        "fingerprint": fingerprint,
+        "map_version": state["panorama"]["map_version"],
+        "displayed_at_runtime_version": target_version,
+    }
+    state["field"]["f0_checkpoint"] = checkpoint
+    state["execution"]["last_decision"] = "F0_CONFIRMATION_REQUIRED"
+    append_event(
+        state,
+        "F0_CHECKPOINT",
+        "formed F0 checkpoint rendered for explicit confirmation",
+        "F0",
+        details={"checkpoint": checkpoint},
+    )
+    state["execution"]["snapshot_version"] = state["version"]
+    final_errors = validate_state(state)
+    if final_errors:
+        raise ValueError("; ".join(final_errors))
+    write_state(path, state)
+    counts = active_residual_modal_counts(state)
+    expansion_counts = expansion_frontier_counts(state)
+    print(f"F0：{state['field']['root_goal']}")
+    print(f"中心：{center_axis_text(state)}")
+    print(
+        "前沿："
+        f"必要◇{expansion_counts['required']} / "
+        f"普通◇{expansion_counts['latent']}"
+    )
+    print(
+        "剩余："
+        f"潜在Λ{latent_residual_count(state)} / "
+        f"活动◇{counts['[◇]']} / -{counts['[-]']} / ∅{counts['[∅]']}"
+    )
+    print("决策：F0_CONFIRMATION_REQUIRED")
+    return 0
+
+
+def motion_profile_progress(state: dict[str, Any]) -> dict[str, Any]:
+    profile = state.get("execution", {}).get("motion_profile")
+    if not isinstance(profile, dict) or profile.get("status") not in {"open", "rendered"}:
+        raise ValueError("RUNTIME_PROOF_REQUIRED: no open motion profile")
+    opened_at = profile.get("opened_at_runtime_version")
+    motion_events = [
+        event
+        for event in state.get("history", [])
+        if isinstance(event, dict)
+        and isinstance(event.get("version"), int)
+        and event["version"] > opened_at
+        and event.get("type") in {"GLOBAL_EXPAND", "FOCUS"}
+    ]
+    types = [event["type"] for event in motion_events]
+    first_focus = next((index for index, item in enumerate(types) if item == "FOCUS"), None)
+    if first_focus is not None and "GLOBAL_EXPAND" in types[first_focus + 1 :]:
+        raise ValueError("motion proof is invalid: Global occurred after Focus")
+    return {
+        "profile": profile,
+        "events": motion_events,
+        "global_count": types.count("GLOBAL_EXPAND"),
+        "focus_count": types.count("FOCUS"),
+        "execute_events": [
+            event
+            for event in state.get("history", [])
+            if isinstance(event, dict)
+            and isinstance(event.get("version"), int)
+            and event["version"] > opened_at
+            and event.get("type") == "EXECUTE"
+        ],
+    }
+
+
+def require_current_checkpoint_proof(state: dict[str, Any]) -> tuple[int, str]:
+    confirmation = state.get("field", {}).get("f0_confirmation", {})
+    checkpoint = state.get("field", {}).get("f0_checkpoint")
+    if confirmation.get("status") != "confirmed":
+        raise ValueError("RUNTIME_PROOF_REQUIRED: F0 is not confirmed")
+    if not isinstance(checkpoint, dict):
+        raise ValueError(
+            "RUNTIME_PROOF_REQUIRED: confirmed F0 has no recorded rendered checkpoint"
+        )
+    expected = f0_checkpoint_fingerprint(state)
+    checkpoint_hash = checkpoint.get("fingerprint")
+    if expected != checkpoint_hash:
+        raise ValueError(
+            "RUNTIME_PROOF_REQUIRED: the current F0 differs from the displayed checkpoint"
+        )
+    if confirmation.get("checkpoint_hash") != checkpoint_hash:
+        raise ValueError(
+            "RUNTIME_PROOF_REQUIRED: confirmation is not bound to the displayed checkpoint"
+        )
+    return confirmation["confirmed_at_runtime_version"], checkpoint_hash
+
+
+def cmd_run_open(args: argparse.Namespace) -> int:
+    path = Path(args.path)
+    original_state = read_state(path)
+    errors = validate_state(original_state)
+    if errors:
+        raise ValueError("; ".join(errors))
+    if schema_version(original_state) != SCHEMA_JOINT:
+        raise ValueError("run-open requires schema 2.2")
+    confirmation_version, checkpoint_hash = require_current_checkpoint_proof(
+        original_state
+    )
+    require_f0_provisional_closure(original_state, "RUN_OPEN")
+    if args.global_count < 0 or args.focus_count < 0:
+        raise ValueError("motion counts must be non-negative")
+    if args.global_count == args.focus_count == 0:
+        raise ValueError("a Focus run requires at least one Global or Focus motion")
+    existing = original_state["execution"].get("motion_profile")
+    if isinstance(existing, dict) and existing.get("status") == "open":
+        raise ValueError("an unrendered Focus run is already open")
+    state = copy.deepcopy(original_state)
+    target_version = original_state["version"] + 1
+    recursive = original_state.get("recursive_focus", {})
+    snapshots = recursive.get("snapshots", []) if isinstance(recursive, dict) else []
+    if not snapshots:
+        raise ValueError("RUN_OPEN requires a confirmed S0 recursive snapshot")
+    starting_recursive_round = snapshots[-1].get("focus_round")
+    if not isinstance(starting_recursive_round, int):
+        raise ValueError("RUN_OPEN cannot determine the current recursive Focus round")
+    profile = {
+        "status": "open",
+        "mode": args.mode,
+        "global_count": args.global_count,
+        "focus_count": args.focus_count,
+        "continue_until_terminal": True,
+        "starting_recursive_round": starting_recursive_round,
+        "confirmation_version": confirmation_version,
+        "checkpoint_hash": checkpoint_hash,
+        "opened_at_runtime_version": target_version,
+        "rendered_at_runtime_version": None,
+    }
+    state["execution"]["motion_profile"] = profile
+    state["execution"]["last_decision"] = (
+        "EXPAND_REQUIRED" if args.global_count else "FOCUS_REQUIRED"
+    )
+    append_event(
+        state,
+        "RUN_OPEN",
+        "auditable Focus run opened",
+        "F0",
+        details={"motion_profile": profile},
+    )
+    state["execution"]["snapshot_version"] = state["version"]
+    final_errors = validate_state(state)
+    if final_errors:
+        raise ValueError("; ".join(final_errors))
+    write_state(path, state)
+    print(
+        f"version {state['version']}: RUN_OPEN "
+        f"Global×{args.global_count} Focus×{args.focus_count} mode={args.mode}"
+    )
+    return 0
+
+
+def require_motion_profile_slot(state: dict[str, Any], motion: str) -> None:
+    confirmation_version, checkpoint_hash = require_current_checkpoint_proof(state)
+    progress = motion_profile_progress(state)
+    profile = progress["profile"]
+    if profile.get("status") != "open":
+        raise ValueError("RUNTIME_PROOF_REQUIRED: motion profile is not open")
+    if profile.get("confirmation_version") != confirmation_version:
+        raise ValueError("RUNTIME_PROOF_REQUIRED: motion profile uses stale confirmation")
+    if profile.get("checkpoint_hash") != checkpoint_hash:
+        raise ValueError("RUNTIME_PROOF_REQUIRED: motion profile uses stale F0")
+    if motion == "GLOBAL_EXPAND":
+        if progress["focus_count"]:
+            raise ValueError("Global Expansion cannot occur after Focus in one run")
+        if progress["global_count"] >= profile["global_count"]:
+            raise ValueError("the run has no remaining Global Expansion slot")
+    elif motion == "FOCUS":
+        if progress["global_count"] != profile["global_count"]:
+            raise ValueError("Focus blocked until the requested Global motions finish")
+        if progress["focus_count"] >= profile["focus_count"]:
+            raise ValueError("the run has no remaining Focus slot")
+    elif motion in {"PLAN_EXECUTION", "EXECUTE"}:
+        if (
+            progress["global_count"] != profile["global_count"]
+            or progress["focus_count"] != profile["focus_count"]
+        ):
+            raise ValueError("execution blocked until the requested motion profile finishes")
+
+
+def require_complete_motion_profile(state: dict[str, Any]) -> dict[str, Any]:
+    progress = motion_profile_progress(state)
+    profile = progress["profile"]
+    if (
+        progress["global_count"] != profile["global_count"]
+        or progress["focus_count"] != profile["focus_count"]
+    ):
+        raise ValueError(
+            "RUNTIME_PROOF_REQUIRED: requested Global/Focus motions are incomplete"
+        )
+    for event in progress["events"]:
+        details = event.get("details")
+        if not isinstance(details, dict):
+            raise ValueError("RUNTIME_PROOF_REQUIRED: motion event has no state delta")
+        if not details.get("panorama_changed"):
+            raise ValueError("RUNTIME_PROOF_REQUIRED: motion event did not move the field")
+        if not details.get("new_residual_ids") and not nonempty_string(
+            details.get("empty_residual_reason")
+        ):
+            raise ValueError("RUNTIME_PROOF_REQUIRED: motion lacks residual audit")
+        if event.get("type") == "FOCUS" and not any(
+            details.get(name)
+            for name in ("new_addresses", "updated_addresses", "active_addresses")
+        ):
+            raise ValueError(
+                "RUNTIME_PROOF_REQUIRED: Focus has no generated, opened, or active address"
+            )
+        if event.get("type") == "FOCUS" and not nonempty_string(
+            details.get("recursive_snapshot_id")
+        ):
+            raise ValueError(
+                "RUNTIME_PROOF_REQUIRED: Focus has no verified recursive S-state"
+            )
+    recursive = state.get("recursive_focus", {})
+    snapshots = recursive.get("snapshots", []) if isinstance(recursive, dict) else []
+    expected_round = profile.get("starting_recursive_round", 0) + profile["focus_count"]
+    if not snapshots or snapshots[-1].get("focus_round") != expected_round:
+        raise ValueError(
+            "RUNTIME_PROOF_REQUIRED: recursive Focus snapshots do not match the requested rounds"
+        )
+    return progress
+
+
+def generated_address_is_validated(state: dict[str, Any], address: str) -> bool:
+    node_map, _ = joint_graph_indexes(state)
+    node = node_map.get(address)
+    if not isinstance(node, dict) or node.get("validity") != "valid":
+        return False
+    if focus_display_address(state, address) is not None and node.get(
+        "field_opening_status"
+    ) != "validated":
+        return False
+    if node.get("modal_status") == "[+]" and address in state["panorama"].get(
+        "explored", []
+    ):
+        return True
+    candidates = list(state.get("focus", {}).get("active_paths", []))
+    for name in FRONTIER_TYPES:
+        candidates.extend(state["panorama"].get("frontiers", {}).get(name, []))
+    return any(
+        isinstance(item, dict)
+        and item.get("address") == address
+        and audit_path(state, item).get("gate_status") == "legal"
+        for item in candidates
+    )
+
+
+def cmd_render_result(args: argparse.Namespace) -> int:
+    path = Path(args.path)
+    original_state = read_state(path)
+    errors = validate_state(original_state)
+    if errors:
+        raise ValueError("; ".join(errors))
+    if schema_version(original_state) != SCHEMA_JOINT:
+        raise ValueError("render-result requires schema 2.2")
+    require_current_checkpoint_proof(original_state)
+    progress = require_complete_motion_profile(original_state)
+    profile = progress["profile"]
+    if profile.get("status") != "open":
+        raise ValueError("this Focus run has already been rendered")
+    decision = original_state["execution"].get("last_decision")
+    if profile["mode"] == "action" and decision not in {
+        "F0_COMPLETE",
+        "BLOCKED",
+        "HUMAN_CALIBRATION_REQUIRED",
+        "FIELD_ASCENSION_REQUIRED",
+        "REMODEL_REQUIRED",
+    }:
+        raise ValueError(
+            "EXECUTION_INCOMPLETE: authorized Ready work or unresolved execution remains"
+        )
+    if profile["mode"] == "action" and decision in {
+        "CONTINUE_EXECUTION",
+        "F0_COMPLETE",
+    } and not progress["execute_events"]:
+        raise ValueError(
+            "RUNTIME_PROOF_REQUIRED: action result has no audited EXECUTE event"
+        )
+    if decision == "F0_COMPLETE":
+        if original_state["panorama"].get("residuals"):
+            raise ValueError("F0_COMPLETE cannot hide active residuals")
+        if expansion_frontier_counts(original_state)["required"]:
+            raise ValueError("F0_COMPLETE cannot hide required Expansion work")
+        if original_state["panorama"].get("frontiers", {}).get("action") or original_state[
+            "execution"
+        ].get("queue"):
+            raise ValueError("F0_COMPLETE cannot hide executable pending work")
+    result_text = " ".join(args.result.split())
+    if not result_text:
+        raise ValueError("--result must be non-empty")
+    generated = sorted(
+        {
+            address
+            for event in progress["events"]
+            for address in event.get("details", {}).get("new_addresses", [])
+            if nonempty_string(address)
+        }
+    )
+    validated_count = sum(
+        1 for address in generated if generated_address_is_validated(original_state, address)
+    )
+    legal_expansion = [
+        item
+        for item in original_state["panorama"].get("frontiers", {}).get(
+            "expansion", []
+        )
+        if isinstance(item, dict)
+        and audit_path(original_state, item).get("gate_status") == "legal"
+    ]
+    pending_required_count = sum(
+        item.get("expansion_requirement", "latent") == "required"
+        for item in legal_expansion
+    )
+    pending_latent_count = sum(
+        item.get("expansion_requirement", "latent") == "latent"
+        for item in legal_expansion
+    )
+    pending_count = pending_required_count + pending_latent_count
+    residual_counts = active_residual_modal_counts(original_state)
+    state = copy.deepcopy(original_state)
+    target_version = original_state["version"] + 1
+    state["execution"]["motion_profile"]["status"] = "rendered"
+    state["execution"]["motion_profile"]["rendered_at_runtime_version"] = target_version
+    report = {
+        "generated_count": len(generated),
+        "validated_count": validated_count,
+        "pending_count": pending_count,
+        "pending_required_count": pending_required_count,
+        "pending_latent_count": pending_latent_count,
+        "latent_residual_count": latent_residual_count(original_state),
+        "residual_counts": residual_counts,
+        "decision": decision,
+        "result_hash": "sha256:"
+        + hashlib.sha256(result_text.encode("utf-8")).hexdigest(),
+        "motion_event_versions": [event["version"] for event in progress["events"]],
+    }
+    append_event(
+        state,
+        "RUN_RENDER",
+        "compact result derived from auditable runtime state",
+        "F0",
+        details=report,
+    )
+    state["execution"]["snapshot_version"] = state["version"]
+    final_errors = validate_state(state)
+    if final_errors:
+        raise ValueError("; ".join(final_errors))
+    write_state(path, state)
+    print(f"F0：{state['field']['root_goal']}")
+    if profile["global_count"]:
+        motion_text = (
+            f"Global ×{profile['global_count']} → Focus ×{profile['focus_count']}"
+        )
+    else:
+        start = profile.get("starting_recursive_round", 0)
+        motion_text = f"Focus ×{profile['focus_count']}（S{start}→S{start + profile['focus_count']}）"
+    print(f"运动：{motion_text}")
+    print(
+        f"地址：生成 {len(generated)} 条，验证 {validated_count} 条，"
+        f"必要待展开 {pending_required_count} 条，普通待展开 {pending_latent_count} 条"
+    )
+    print(f"结果：{result_text}")
+    print(
+        f"剩余：潜在Λ{latent_residual_count(original_state)} / "
+        f"活动◇{residual_counts['[◇]']} / "
+        f"-{residual_counts['[-]']} / ∅{residual_counts['[∅]']}"
+    )
+    print(f"决策：{decision}")
+    return 0
+
+
 def append_records_by_id(
     target: list[dict[str, Any]], records: Any, label: str
 ) -> None:
@@ -4058,6 +5334,106 @@ def archive_absorbed_residuals(state: dict[str, Any], records: Any) -> list[str]
             item for item in active if item.get("id") not in set(absorbed_ids)
         ]
     return absorbed_ids
+
+
+def transition_latent_residuals(
+    state: dict[str, Any],
+    activated: Any,
+    absorbed: Any,
+) -> dict[str, list[str]]:
+    """Move Λ_t to active R_t or history without deleting its lineage."""
+    for label, records in (
+        ("activated_latent_residuals", activated),
+        ("absorbed_latent_residuals", absorbed),
+    ):
+        if not isinstance(records, list) or not all(
+            isinstance(item, dict) for item in records
+        ):
+            raise ValueError(f"{label} must be a list of objects")
+    panorama = state["panorama"]
+    active_latent = panorama.setdefault("latent_residuals", [])
+    latent_map = {
+        item.get("id"): item
+        for item in active_latent
+        if isinstance(item, dict) and nonempty_string(item.get("id"))
+    }
+    active_residual_ids = {
+        item.get("id")
+        for item in panorama.get("residuals", [])
+        if isinstance(item, dict) and nonempty_string(item.get("id"))
+    }
+    history_ids = {
+        item.get("id")
+        for item in panorama.setdefault("latent_residual_history", [])
+        if isinstance(item, dict) and nonempty_string(item.get("id"))
+    }
+    transitioned: set[str] = set()
+    result = {"activated": [], "absorbed": []}
+
+    def common_checks(record: dict[str, Any], label: str) -> tuple[str, list[str]]:
+        latent_id = record.get("id")
+        if latent_id not in latent_map:
+            raise ValueError(f"cannot transition unknown latent residual: {latent_id}")
+        if latent_id in history_ids or latent_id in transitioned:
+            raise ValueError(f"duplicate latent residual transition: {latent_id}")
+        for name in ("motion", "reason"):
+            if not nonempty_string(record.get(name)):
+                raise ValueError(f"{label} {latent_id} needs {name}")
+        evidence_ids = record.get("evidence_ids", [])
+        if not isinstance(evidence_ids, list) or not all(
+            nonempty_string(item) for item in evidence_ids
+        ):
+            raise ValueError(f"{label} {latent_id} evidence_ids must be a string list")
+        return str(latent_id), evidence_ids
+
+    for record in activated:
+        latent_id, _ = common_checks(record, "activated latent residual")
+        disposition = record.get("disposition", "active-residual")
+        if disposition not in {
+            "absorbed-local",
+            "required-frontier",
+            "address-birth",
+            "active-residual",
+            "externalized",
+        }:
+            raise ValueError(
+                f"activated latent residual {latent_id} has invalid disposition"
+            )
+        if disposition == "active-residual":
+            active_residual_id = record.get("active_residual_id")
+            if active_residual_id not in active_residual_ids:
+                raise ValueError(
+                    f"activated latent residual {latent_id} must name an existing active_residual_id"
+                )
+        archived = copy.deepcopy(latent_map[latent_id])
+        archived["activation_status"] = (
+            disposition if "disposition" in record else "activated"
+        )
+        archived["transitioned_by"] = copy.deepcopy(record)
+        archived["transitioned_at_version"] = state["version"] + 1
+        panorama["latent_residual_history"].append(archived)
+        transitioned.add(latent_id)
+        result["activated"].append(latent_id)
+
+    for record in absorbed:
+        latent_id, _ = common_checks(record, "absorbed latent residual")
+        archived = copy.deepcopy(latent_map[latent_id])
+        archived["activation_status"] = record.get("disposition", "absorbed")
+        if archived["activation_status"] not in {"absorbed", "dismissed"}:
+            raise ValueError(
+                f"absorbed latent residual {latent_id} disposition must be absorbed or dismissed"
+            )
+        archived["transitioned_by"] = copy.deepcopy(record)
+        archived["transitioned_at_version"] = state["version"] + 1
+        panorama["latent_residual_history"].append(archived)
+        transitioned.add(latent_id)
+        result["absorbed"].append(latent_id)
+
+    if transitioned:
+        panorama["latent_residuals"] = [
+            item for item in active_latent if item.get("id") not in transitioned
+        ]
+    return result
 
 
 def rebuild_execution_plan(state: dict[str, Any]) -> None:
@@ -4415,6 +5791,11 @@ def apply_joint_motion_delta(
         raise ValueError(
             "an audited motion with no new residual requires empty_residual_reason"
         )
+    new_latent_residuals = delta.get("latent_residuals", [])
+    if not isinstance(new_latent_residuals, list) or not all(
+        isinstance(item, dict) for item in new_latent_residuals
+    ):
+        raise ValueError("latent_residuals must be a list of objects")
     realized_request = delta.get("realized_addresses", [])
     if not isinstance(realized_request, list) or not all(
         nonempty_string(item) for item in realized_request
@@ -4473,6 +5854,9 @@ def apply_joint_motion_delta(
             "evidence",
             "residuals",
             "absorbed_residuals",
+            "latent_residuals",
+            "activated_latent_residuals",
+            "absorbed_latent_residuals",
             "modal_results",
             "center_update",
             "field_update",
@@ -4521,6 +5905,16 @@ def apply_joint_motion_delta(
         state, delta.get("absorbed_residuals", [])
     )
     append_records_by_id(panorama["residuals"], new_residuals, "residual")
+    append_records_by_id(
+        panorama.setdefault("latent_residuals", []),
+        new_latent_residuals,
+        "latent residual",
+    )
+    latent_transitions = transition_latent_residuals(
+        state,
+        delta.get("activated_latent_residuals", []),
+        delta.get("absorbed_latent_residuals", []),
+    )
     append_records_by_id(
         panorama["modal_results"], delta.get("modal_results", []), "modal result"
     )
@@ -4639,6 +6033,11 @@ def apply_joint_motion_delta(
         "deferred": copy.deepcopy(deferred),
         "new_residual_ids": [item["id"] for item in new_residuals],
         "absorbed_residual_ids": absorbed_residual_ids,
+        "new_latent_residual_ids": [
+            item["id"] for item in new_latent_residuals
+        ],
+        "activated_latent_residual_ids": latent_transitions["activated"],
+        "absorbed_latent_residual_ids": latent_transitions["absorbed"],
         "empty_residual_reason": delta.get("empty_residual_reason"),
     }
 
@@ -4940,6 +6339,11 @@ def apply_joint_execution_audit(
         raise ValueError(
             "an execution audit with no new residual requires empty_residual_reason"
         )
+    new_latent_residuals = audit.get("latent_residuals", [])
+    if not isinstance(new_latent_residuals, list) or not all(
+        isinstance(item, dict) for item in new_latent_residuals
+    ):
+        raise ValueError("execution audit latent_residuals must be a list of objects")
 
     supplied_evidence = audit.get("evidence", [])
     if not isinstance(supplied_evidence, list) or not all(
@@ -4964,6 +6368,16 @@ def apply_joint_execution_audit(
         state, audit.get("absorbed_residuals", [])
     )
     append_records_by_id(state["panorama"]["residuals"], new_residuals, "residual")
+    append_records_by_id(
+        state["panorama"].setdefault("latent_residuals", []),
+        new_latent_residuals,
+        "latent residual",
+    )
+    latent_transitions = transition_latent_residuals(
+        state,
+        audit.get("activated_latent_residuals", []),
+        audit.get("absorbed_latent_residuals", []),
+    )
     append_records_by_id(
         state["panorama"]["modal_results"],
         audit.get("modal_results", []),
@@ -5030,6 +6444,11 @@ def apply_joint_execution_audit(
         "absorbed_outcomes": copy.deepcopy(audit["absorbed_outcomes"]),
         "new_residual_ids": [item["id"] for item in new_residuals],
         "absorbed_residual_ids": absorbed_residual_ids,
+        "new_latent_residual_ids": [
+            item["id"] for item in new_latent_residuals
+        ],
+        "activated_latent_residual_ids": latent_transitions["activated"],
+        "absorbed_latent_residual_ids": latent_transitions["absorbed"],
         "empty_residual_reason": audit.get("empty_residual_reason"),
         "residual_driven_decision": decision,
         "invalidation_propagation": propagation,
@@ -5775,10 +7194,10 @@ def require_f0_confirmation(state: dict[str, Any], operation: str) -> None:
     if schema_version(state) != SCHEMA_JOINT:
         return
     status = state.get("field", {}).get("f0_confirmation", {}).get("status")
-    if status not in {"confirmed", "bypassed"}:
+    if status != "confirmed":
         raise ValueError(
             f"{operation} blocked: display the candidate F0 and obtain explicit "
-            "confirmation, or record an explicit bypass"
+            "confirmation of that displayed candidate"
         )
 
 
@@ -5832,7 +7251,7 @@ def f0_provisional_closure_issues(state: dict[str, Any]) -> list[str]:
     issues: list[str] = []
     field = state.get("field", {})
     confirmation = field.get("f0_confirmation", {}).get("status")
-    if confirmation not in {"confirmed", "bypassed"}:
+    if confirmation != "confirmed":
         issues.append("F0 is not confirmed")
     if field.get("contract_status") != "stable-for-execution":
         issues.append("the F0 contract is not stable-for-execution")
@@ -5857,6 +7276,19 @@ def f0_provisional_closure_issues(state: dict[str, Any]) -> list[str]:
     if not has_audited_forward_field_formation(state):
         issues.append(
             "no audited pre-confirmation forward field-formation motion changed the panorama"
+        )
+    required_frontier = [
+        item
+        for item in panorama.get("frontiers", {}).get("expansion", [])
+        if isinstance(item, dict)
+        and item.get("expansion_requirement", "latent") == "required"
+    ]
+    if required_frontier:
+        issues.append(
+            "required Expansion frontier is not empty: "
+            + ", ".join(
+                str(item.get("address")) for item in required_frontier
+            )
         )
 
     residuals = panorama.get("residuals", [])
@@ -5965,48 +7397,71 @@ def cmd_f0_confirm(args: argparse.Namespace) -> int:
             f"schema {schema_version(original_state)} is read-only; confirm F0 only in schema 2.2"
         )
     if not nonempty_string(args.by):
-        raise ValueError("--by must identify the explicit confirmer or bypass source")
+        raise ValueError("--by must identify the explicit confirmer")
+    if getattr(args, "bypass", False):
+        raise ValueError(
+            "F0 confirmation bypass is not allowed; form, display, and explicitly confirm F0"
+        )
     current = original_state["field"]["f0_confirmation"].get("status")
     if current != "required":
         raise ValueError(f"F0 confirmation is already {current}; no state change made")
-    if not args.bypass:
-        candidate_issues = f0_confirmation_candidate_issues(original_state)
-        if candidate_issues:
-            raise ValueError(
-                "F0 confirmation blocked until the candidate field is formed and auditable: "
-                + "; ".join(candidate_issues)
-            )
+    candidate_issues = f0_confirmation_candidate_issues(original_state)
+    if candidate_issues:
+        raise ValueError(
+            "F0 confirmation blocked until the candidate field is formed and auditable: "
+            + "; ".join(candidate_issues)
+        )
+    checkpoint = original_state["field"].get("f0_checkpoint")
+    expected_checkpoint = f0_checkpoint_fingerprint(original_state)
+    if (
+        not isinstance(checkpoint, dict)
+        or checkpoint.get("fingerprint") != expected_checkpoint
+    ):
+        raise ValueError(
+            "F0 confirmation blocked: run render-checkpoint for the current formed candidate first"
+        )
 
     state = copy.deepcopy(original_state)
     target_version = original_state["version"] + 1
-    status = "bypassed" if args.bypass else "confirmed"
     confirmation = {
-        "status": status,
+        "status": "confirmed",
         "confirmed_by": args.by,
         "confirmed_at_runtime_version": target_version,
+        "checkpoint_hash": checkpoint["fingerprint"],
     }
     state["field"]["f0_confirmation"] = confirmation
-    state["execution"]["last_decision"] = (
-        "FIELD_FORMATION_REQUIRED" if args.bypass else "EXPAND_REQUIRED"
-    )
-    note = args.note or (
-        "F0 confirmation explicitly bypassed"
-        if args.bypass
-        else "formed F0 explicitly confirmed"
-    )
+    recursive = empty_recursive_focus()
+    s0 = build_s0_snapshot(state, target_version)
+    recursive["s0_confirmation_version"] = target_version
+    recursive["current_snapshot_id"] = "S0"
+    recursive["snapshots"] = [s0]
+    state["recursive_focus"] = recursive
+    state["execution"]["motion_profile"] = empty_motion_profile()
+    state["execution"]["last_decision"] = "FOCUS_REQUIRED"
+    note = args.note or "formed F0 explicitly confirmed"
     append_joint_motion_event(
         state,
         original_state,
         "F0_CONFIRM",
         note,
         "F0",
-        {"f0_confirmation": copy.deepcopy(confirmation)},
+        {
+            "f0_confirmation": copy.deepcopy(confirmation),
+            "recursive_snapshot_id": "S0",
+            "active_closure_address_count": len(s0["active_addresses"]),
+            "s0_hash": s0["state_hash"],
+        },
     )
     final_errors = validate_state(state)
     if final_errors:
         raise ValueError("; ".join(final_errors))
     write_state(path, state)
-    print(f"version {state['version']}: F0 {status} by {args.by}")
+    print(f"version {state['version']}: F0 confirmed by {args.by}")
+    print(
+        "S0："
+        + " → ".join(address.split(":", 1)[-1] for address in s0["active_addresses"])
+        + "（相对闭合）"
+    )
     return 0
 
 
@@ -6022,6 +7477,10 @@ def cmd_transition(args: argparse.Namespace) -> int:
         raise ValueError(
             "use update-receive, update-structure, or update-apply for address-motion maintenance"
         )
+    if event_type in {"F0_CHECKPOINT", "RUN_OPEN", "RUN_RENDER"}:
+        raise ValueError(
+            "use render-checkpoint, run-open, or render-result for runtime proof events"
+        )
     path = Path(args.path)
     original_state = read_state(path)
     errors = validate_state(original_state)
@@ -6035,6 +7494,8 @@ def cmd_transition(args: argparse.Namespace) -> int:
         require_f0_confirmation(original_state, event_type)
     if event_type in F0_PROVISIONAL_CLOSURE_GATED_EVENT_TYPES:
         require_f0_provisional_closure(original_state, event_type)
+    if event_type in {"GLOBAL_EXPAND", "PLAN_EXECUTION", "EXECUTE"}:
+        require_motion_profile_slot(original_state, event_type)
     if args.residual_audit_json:
         raise ValueError("--residual-audit-json is legacy-only and cannot mutate schema 2.2")
 
@@ -6356,6 +7817,7 @@ def cmd_focus(args: argparse.Namespace) -> int:
         )
     require_f0_confirmation(original_state, "FOCUS")
     require_f0_provisional_closure(original_state, "FOCUS")
+    require_motion_profile_slot(original_state, "FOCUS")
     if selected_center_record(original_state) is None:
         raise ValueError(
             "FOCUS blocked: complete field formation and select an evidence-tested center first"
@@ -6395,6 +7857,12 @@ def cmd_focus(args: argparse.Namespace) -> int:
         node = node_map.get(item.get("address"))
         if node is None or node.get("validity") != "valid" or node.get("modal_status") != "[◇]":
             raise ValueError("Focus active paths must reference valid potential addresses")
+    recursive_snapshot = apply_recursive_focus_round(
+        original_state,
+        state,
+        delta,
+        details,
+    )
     locked_addresses = [
         item.get("address")
         for item in state["panorama"]["frontiers"]["compressed"]
@@ -6420,6 +7888,9 @@ def cmd_focus(args: argparse.Namespace) -> int:
             raise ValueError("Focus residual_driven_decision is invalid")
         state["execution"]["last_decision"] = decision
     details["active_addresses"] = [item["address"] for item in active_paths]
+    details["active_closure_addresses"] = list(
+        recursive_snapshot["active_addresses"]
+    )
     append_joint_motion_event(
         state,
         original_state,
@@ -6599,15 +8070,39 @@ def build_parser() -> argparse.ArgumentParser:
     summary.add_argument("path")
     summary.set_defaults(func=cmd_summary)
 
+    checkpoint = sub.add_parser(
+        "render-checkpoint",
+        help="persist and render the formed F0 checkpoint before confirmation",
+    )
+    checkpoint.add_argument("path")
+    checkpoint.set_defaults(func=cmd_render_checkpoint)
+
     f0_confirm = sub.add_parser(
         "f0-confirm",
-        help="record explicit confirmation or explicit bypass of the displayed F0",
+        help="record explicit confirmation of the displayed, formed F0",
     )
     f0_confirm.add_argument("path")
     f0_confirm.add_argument("--by", required=True)
-    f0_confirm.add_argument("--bypass", action="store_true")
     f0_confirm.add_argument("--note")
     f0_confirm.set_defaults(func=cmd_f0_confirm)
+
+    run_open = sub.add_parser(
+        "run-open",
+        help="open an auditable Global/Focus motion profile after F0 confirmation",
+    )
+    run_open.add_argument("path")
+    run_open.add_argument("--mode", choices=tuple(sorted(RUN_MODES)), required=True)
+    run_open.add_argument("--global-count", type=int, default=0)
+    run_open.add_argument("--focus-count", type=int, default=3)
+    run_open.set_defaults(func=cmd_run_open)
+
+    render_result = sub.add_parser(
+        "render-result",
+        help="derive the six-line result only from an auditable completed motion profile",
+    )
+    render_result.add_argument("path")
+    render_result.add_argument("--result", required=True)
+    render_result.set_defaults(func=cmd_render_result)
 
     update_receive = sub.add_parser(
         "update-receive", help="preserve a raw update before structural interpretation"

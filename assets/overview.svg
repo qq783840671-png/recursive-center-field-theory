@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="title desc">
-  <title id="title">递归中心场域论：从根目标到版本化重构</title>
-  <desc id="desc">根目标 F0 与场契约，经当前场内关系、必要偏序与候选中心审计、全景展开或 Focus 渗透、偏序就绪、执行审计、剩余地址关系与漂移审计，进入版本化重构。图中同时显示三类前沿，且潜在地址只在执行审计阶段转为现实地址。</desc>
+  <title id="title">递归偏序多中心动态场域论：从完整场投影到版本化返回</title>
+  <desc id="desc">任务相对场契约经关系全景、多中心候选与必要偏序审计，投影一个选中中心进入 Focus 运行面；只在必要位置打开一层或执行，随后分别审计选中中心和完整场闭合，以剩余触发重审并进入版本化返回。</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#071527"/>
@@ -57,11 +57,11 @@
 
   <g transform="translate(52 34)">
     <rect x="0" y="2" width="5" height="64" rx="2.5" fill="url(#cyan)"/>
-    <text class="zh" x="22" y="30" fill="#F5FBFF" font-size="29" font-weight="700">递归中心场域论</text>
-    <text class="en" x="23" y="56" fill="#78B8D6" font-size="11" font-weight="600">RECURSIVE CENTER-FIELD THEORY</text>
+    <text class="zh" x="22" y="30" fill="#F5FBFF" font-size="24" font-weight="700">递归偏序多中心动态场域论</text>
+    <text class="en" x="23" y="56" fill="#78B8D6" font-size="10" font-weight="600">RECURSIVE PARTIAL-ORDER MULTI-CENTER DYNAMIC FIELD THEORY</text>
   </g>
   <g transform="translate(869 49)">
-    <text class="zh" x="0" y="0" fill="#8FB2CC" font-size="12">偏序生成 · 双重运动 · 剩余驱动重构</text>
+      <text class="zh" x="0" y="0" fill="#8FB2CC" font-size="12">多中心全景 · 单中心 Focus · 剩余触发重审</text>
     <path d="M0 18 H328" stroke="url(#cyan)" stroke-width="2" opacity=".7"/>
   </g>
 
@@ -97,12 +97,12 @@
 
   <g transform="translate(958 154)">
     <rect class="card-accent" width="270" height="118" rx="14"/>
-    <text class="step" x="18" y="25">04 · DUAL MOTION</text>
-    <text class="main" x="18" y="55">全景展开</text>
+      <text class="step" x="18" y="25">04 · FOCUS 1 / 2</text>
+      <text class="main" x="18" y="55">中心投影</text>
     <text class="mono" x="109" y="55" fill="#62D5EA" font-size="14">/</text>
-    <text class="main" x="125" y="55">Focus 渗透</text>
-    <text class="sub" x="18" y="82">拓宽全局结构 / 选择性深入地址</text>
-    <text class="sub" x="18" y="104">Global Expansion / Focus Penetration</text>
+      <text class="main" x="125" y="55">一层展开</text>
+      <text class="sub" x="18" y="82">保留平级接口 / 只打开必要地址</text>
+      <text class="sub" x="18" y="104">Center Projection / One-layer Expansion</text>
   </g>
 
   <!-- Turn to lower sequence -->
@@ -151,18 +151,18 @@
     <rect class="card" width="260" height="118" rx="14"/>
     <text class="step" x="18" y="25">07 · RESIDUAL</text>
     <text class="math" x="18" y="56">Rₜ + χₜ</text>
-    <text class="main" x="18" y="84">剩余与地址关系</text>
-    <text class="sub" x="18" y="106">记录可达距离、吸收史与漂移审计</text>
+      <text class="main" x="18" y="84">剩余与证书失效</text>
+      <text class="sub" x="18" y="106">触发重审，不冒充独立物理力</text>
   </g>
   <path class="flow" d="M348 411 H318"/>
 
   <g transform="translate(52 352)">
     <rect class="card-accent" width="260" height="118" rx="14"/>
     <text class="step" x="18" y="25">08 · RECONSTRUCT</text>
-    <text class="main" x="18" y="56">版本化重构</text>
+      <text class="main" x="18" y="56">Fold / Unwind 返回</text>
     <text class="mono" x="18" y="84" fill="#7DDDED" font-size="13">Fᵛ → Fᵛ⁺¹</text>
     <text class="sub" x="118" y="84">保留路径与变更历史</text>
-    <text class="sub" x="18" y="106">Versioned Reconstruction</text>
+      <text class="sub" x="18" y="106">Versioned Return / Reconstruction</text>
   </g>
 
   <!-- Reconstruction returns to field contract without implying a fixed final center -->
@@ -171,7 +171,7 @@
 
   <g transform="translate(52 522)">
     <circle cx="5" cy="7" r="5" fill="#42CFE2" filter="url(#glow)"/>
-    <text class="zh" x="20" y="12" fill="#B0C8D8" font-size="13">中心不是永久答案，而是当前版本中可检验、可重建的承重关系。</text>
+      <text class="zh" x="20" y="12" fill="#B0C8D8" font-size="13">完整场可多中心；一次 Focus 只运行一个中心，并返回完整场重审。</text>
   </g>
   <g transform="translate(953 522)">
     <text class="mono" x="0" y="12" fill="#6E9BB7" font-size="11">explicit · ordered · versioned</text>

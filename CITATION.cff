@@ -1,17 +1,19 @@
 cff-version: 1.2.0
 message: "If you use this theory, protocol, or Skill, please cite this repository."
-title: "Recursive Center-Field Theory"
+title: "Recursive Partial-Order Multi-Center Dynamic Field Theory"
 type: software
-version: "0.1.0-alpha.3"
-date-released: 2026-07-19
+version: "0.4.0-alpha.1"
+date-released: 2026-08-29
 license: CC-BY-NC-4.0
 authors:
   - name: "qq783840671-png"
 repository-code: "https://github.com/qq783840671-png/recursive-center-field-theory"
-abstract: "A task-relative structural indexing and context orchestration framework for long-horizon AI agents, grounded in Recursive Center-Field Theory."
+abstract: "A developing philosophy-method-engineering framework for task-relative multi-center fields, single-center Focus projections, recursive dynamic addressing, and auditable agent work."
 keywords:
   - recursive-center-field-theory
   - ai-agents
   - context-engineering
   - knowledge-representation
   - partial-order-planning
+  - multi-center-systems
+  - dynamic-addressing

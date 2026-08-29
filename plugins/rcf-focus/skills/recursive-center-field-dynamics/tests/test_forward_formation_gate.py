@@ -311,7 +311,44 @@ class ForwardFormationGateTest(unittest.TestCase):
         )
         self.assertEqual(action_audit["gate_status"], "illegal")
 
-    def test_unformed_initial_state_cannot_be_confirmed_without_explicit_bypass(self) -> None:
+    def test_ready_uses_graph_child_field_certificate_after_order_projection(self) -> None:
+        state = copy.deepcopy(self.stable_state())
+        state["panorama"]["order"]["nodes"] = [
+            dict(node) for node in state["panorama"]["order"]["nodes"]
+        ]
+        order_nodes = state["panorama"]["order"]["nodes"]
+        order_index = next(
+            index
+            for index, node in enumerate(order_nodes)
+            if node["address"] == "F0:A1"
+        )
+        order_nodes[order_index] = {
+            key: value
+            for key, value in order_nodes[order_index].items()
+            if key not in {"field_opening_status", "field_opening_audit"}
+        }
+        action_audit = fs.audit_path(
+            state,
+            state["panorama"]["frontiers"]["expansion"][0],
+            require_action_ready=True,
+        )
+        self.assertNotIn(
+            "active recursive address has no validated child-field opening",
+            action_audit["gate_reasons"],
+        )
+
+    def test_unresolved_potential_residual_cannot_lose_its_frontier_atomically(self) -> None:
+        state = copy.deepcopy(self.stable_state())
+        state["panorama"]["frontiers"]["expansion"] = []
+        errors = fs.validate_state(state)
+        self.assertTrue(
+            any(
+                "absorb or migrate the residual in the same motion" in error
+                for error in errors
+            )
+        )
+
+    def test_unformed_initial_state_cannot_be_confirmed_or_bypassed(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "state.json"
             with contextlib.redirect_stdout(io.StringIO()):
@@ -331,6 +368,17 @@ class ForwardFormationGateTest(unittest.TestCase):
                             path=str(path),
                             by="test:user",
                             bypass=False,
+                            note=None,
+                        )
+                    )
+            self.assertEqual(fs.read_state(path), before)
+            with self.assertRaisesRegex(ValueError, "bypass is not allowed"):
+                with contextlib.redirect_stdout(io.StringIO()):
+                    fs.cmd_f0_confirm(
+                        argparse.Namespace(
+                            path=str(path),
+                            by="test:user",
+                            bypass=True,
                             note=None,
                         )
                     )
@@ -420,6 +468,7 @@ class ForwardFormationGateTest(unittest.TestCase):
                         address=None,
                     )
                 )
+                fs.cmd_render_checkpoint(argparse.Namespace(path=str(path)))
                 fs.cmd_f0_confirm(
                     argparse.Namespace(
                         path=str(path),
@@ -431,7 +480,12 @@ class ForwardFormationGateTest(unittest.TestCase):
             state = fs.read_state(path)
             self.assertEqual(state["field"]["f0_confirmation"]["status"], "confirmed")
             self.assertEqual(state["history"][-1]["type"], "F0_CONFIRM")
-            self.assertEqual(state["execution"]["last_decision"], "EXPAND_REQUIRED")
+            self.assertEqual(state["execution"]["last_decision"], "FOCUS_REQUIRED")
+            self.assertEqual(state["recursive_focus"]["current_snapshot_id"], "S0")
+            self.assertEqual(
+                state["recursive_focus"]["snapshots"][0]["closure_status"],
+                "relative-closed",
+            )
             self.assertEqual(fs.validate_state(state), [])
 
     def test_unbounded_finite_deep_claim_cannot_close(self) -> None:

@@ -1,13 +1,13 @@
-name: Focus Skill failure
-description: Report a reproducible modeling, address, execution, or residual-audit failure.
+name: Runtime or Skill failure
+description: Report a reproducible Focus, Address, Distill, packaging, or execution failure.
 title: "[Failure]: "
 labels: ["skill-failure"]
 body:
   - type: textarea
-    id: root-goal
+    id: field-contract
     attributes:
-      label: Root goal F0 and acceptance condition
-      description: State the task goal, boundary, and what counted as complete.
+      label: Field contract and acceptance condition
+      description: State the goal, boundary, closure gap, evidence standard, and what counted as complete.
     validations:
       required: true
   - type: textarea
@@ -21,7 +21,7 @@ body:
     id: expected
     attributes:
       label: Expected legal structure or behavior
-      description: Describe the expected center, predecessor gate, address, Ready action, or residual classification.
+      description: Describe the expected Focus-1 gate, selected center, predecessor rule, address, action, Fold/Unwind result, or residual classification.
     validations:
       required: true
   - type: textarea
@@ -38,6 +38,15 @@ body:
       description: Codex surface, operating system, Python version, Skill or Plugin version, and schema version.
     validations:
       required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Reproduction checks
+      options:
+        - label: I reproduced this against the current release or explained why I could not.
+          required: true
+        - label: I distinguished a runtime defect from disagreement with a theory claim.
+          required: true
   - type: checkboxes
     id: privacy
     attributes:

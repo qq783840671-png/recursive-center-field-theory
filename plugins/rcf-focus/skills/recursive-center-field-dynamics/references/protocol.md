@@ -1,5 +1,9 @@
 # Recursive Center-Field Partial-Order Dynamics Protocol
 
+> Legacy strict protocol: this file documents the schema-2.2/S0-S3 runtime retained for compatibility and regression comparison. It is not the default two-stage Focus runtime. Use `two-stage-runtime.md` for current invocations.
+
+> Migration rule (v0.16): legacy `modal_status=[◇]` on a latent residual is historical encoding only. New state represents `Λ_t` as a difference record with `address_binding=bound|candidate|unaddressed`; `[◇]` belongs only to calibrated legal addresses. `[-]` and `[∅]` are addressing results.
+
 ## Contents
 
 1. Field contract
@@ -19,14 +23,14 @@ Begin with a provisional contract and stabilize it through field formation befor
 
 The user may supply only one natural-language task sentence. The Skill is responsible for inferring the provisional fields below and must not require the user to translate the task into this notation.
 
-Every new field has a mandatory F0 checkpoint, but confirmation follows formation. Preserve the task, recover need/superior purpose and a provisional contract, run Survey or other field-formation motion, build the complete typed graph, derive and validate the necessary order, test candidate centers, and audit residuals. If blocking ambiguity, `[-]`, `[∅]`, unknown reach, or a disputed center remains, continue formation or stop at calibration/remodeling; do not call the product F0 yet. Once this forward construction is provisionally closed, display the formed candidate F0 plus its validated task-specific center/partial-order axis such as `A → B → C → D → E → A′`, then stop with `F0_CONFIRMATION_REQUIRED`. Global Expansion, Focus Penetration, planning, and Execute require the later explicit confirmation. Resume without a new checkpoint only when the formed field is already confirmed and unchanged, or when the user explicitly requests a bypass.
+Every new field has a mandatory F0 checkpoint, but confirmation follows formation. Preserve the task, recover need/superior purpose and a provisional contract, run Survey or other field-formation motion, build the complete typed graph, derive and validate the necessary order, test candidate centers, and audit residuals. If blocking ambiguity, `[-]`, `[∅]`, unknown reach, or a disputed center remains, continue formation or stop at calibration/remodeling; do not call the product F0 yet. Once this forward construction is provisionally closed, use the state helper's `render-checkpoint` output to display the formed candidate F0 plus its validated task-specific center/partial-order axis such as `A → B → C → D → E → A′`, then stop with `F0_CONFIRMATION_REQUIRED`. Corrections or changed intent re-enter formation/calibration, produce a revised candidate, and require another rendered checkpoint. Global Expansion, Focus Penetration, planning, and Execute require explicit acceptance cryptographically bound to the currently displayed candidate. Resume without a new checkpoint only when the formed field is already confirmed and unchanged.
 
 ```text
 field_id:
 goal_contract_id:
 field_version:
 F0 root goal:
-F0 confirmation: required | confirmed | bypassed
+F0 confirmation: required | confirmed
 current need or problem direction:
 subject and superior purpose:
 definition domain and scale:
@@ -51,11 +55,11 @@ Infer an item from reliable context when alternative values would not change the
 Derive the F0 exit audit before offering normal confirmation, then require the recorded confirmation again before Global Expansion, Focus Penetration, planning, or execution. The gate passes only when:
 
 - at least one audited pre-confirmation formation motion changed the panorama in the forward sequence `need/superior purpose → field contract → complete typed graph → necessary order → minimum-sufficient center`; a declaration-only confirmation is insufficient;
-- the candidate contract is `stable-for-execution`, graph and necessary order are `validated`, the selected center is `valid` with `minimality_status=validated`, and no human calibration is pending; after display, address motion additionally requires confirmation `confirmed` or explicitly `bypassed`;
+- the candidate contract is `stable-for-execution`, graph and necessary order are `validated`, the selected center is `valid` with `minimality_status=validated`, and no human calibration is pending; after display, address motion additionally requires confirmation `confirmed`;
 - the active F0 residual ledger may be empty only when the current motion audit explains why no relevant unabsorbed difference remains;
 - if active residuals remain, every one is `[◇]` with `address_relation.kind=frontier`, `gate_status=legal`, a valid `[◇]` graph node retained in the Expansion frontier, a complete legal root path, and evidence-supported reach `next` or bounded `finite-deep`; no active residual is `[-]`, `[∅]`, rootless, missing-predecessor, already realized-but-unabsorbed, human-pending, or prohibited.
 
-Passing means only **provisional closure**: either no relevant unabsorbed difference remains, or every unresolved difference has a verified finite absorption address, and the field is stable enough for the next bounded motion. A `hypothesized` relation or `[◇,d=?]` is an address hypothesis and remains formation work; it cannot support closure. It does not mean the field is finally complete. If `[-]` remains, use calibration, center repair, split, prohibition audit, or remodeling; if `[∅]` remains, remodel or ascend the field. Never fabricate a `[◇]` residual merely to make the ledger non-empty. A resolved `[-]` or `[∅]` may move to modal results or residual history only through an audited disposition.
+Passing means only **provisional closure**: either no relevant unabsorbed difference remains, or every unresolved difference has a verified finite absorption route, and the field is stable enough for the next bounded motion. Legacy `[◇,d=?]` hypotheses migrate to address candidates without modality and remain formation work; they cannot support closure. It does not mean the field is finally complete. If `[-]` remains, use calibration, center repair, split, prohibition audit, or remodeling; if `[∅]` remains, remodel or ascend the field. Never fabricate a `[◇]` residual merely to make the ledger non-empty. A resolved `[-]` or `[∅]` may move to addressing results or residual history only through an audited disposition.
 
 The forward sequence is constitutive, not a presentation preference. Do not begin with a desired conclusion, media/user category, score, or proposed address and then reverse-engineer dependencies. Evidence may revise any earlier position, but a downstream result cannot certify its own missing predecessor. The helper verifies recorded structure and provenance; it does not independently prove that domain evidence is true, so semantic evidence review remains mandatory.
 
@@ -73,16 +77,26 @@ Keep `F0` as the logical root address throughout one field lineage. A root rebui
 After the user confirms F0 and field formation is stable enough to govern motion, the default initial modeling cycle is:
 
 ```text
-F0 stable root view
-→ F1 first Global snapshot
-→ F2 first Focus snapshot
+formed F0 checkpoint
+→ explicit confirmation commits S0
+→ Focus #1 recursively substitutes one or more active center positions and commits S1
+→ Focus #2 opens only current S1 positions and commits S2
+→ Focus #3 opens only current S2 positions and commits S3
 ```
 
-This is a bounded standard profile, not a universal optimum. Each expansion opens recursive fields and therefore carries a full local validation cost; extra rounds are permitted only when a residual, unresolved frontier, explicit depth, or user instruction justifies them. An explicit user motion count or stop request overrides the profile but never legalizes a skipped predecessor or unvalidated child field. F1/F2 preserve provenance; they are not an execution queue, child-field IDs, address prefixes, or a recursion maximum. Later motions update a versioned panorama without requiring another named F-layer.
+This is a bounded standard profile, not a universal optimum. S0 is the first relatively closed active center sub-poset. One Focus round may substitute one, two, three, or more current active positions; target count comes from F0-sensitive variation, uncertainty, residuals, and evidence. Each selected parent is replaced in the active closure sub-poset by a validated three-position child center. Unselected center positions remain mandatory compressed interfaces. An explicit user motion count or stop request overrides the profile but never legalizes a skipped predecessor, cross-level opening, unvalidated child field, or parent-interface drift.
 
-Interpret explicit task intent after the audited F2 snapshot. `Clarify mode` (for example `理清`, `定位`, or `分析`) returns the audited handoff without external task execution. `Action mode` (for example `做`, `执行`, or `完成`) compiles the F2 activity view into `D_t/Ready_t` and continues into execution. A material ambiguity still uses the human-calibration gate rather than guessing a different F0.
+Interpret explicit task intent after the audited S3 snapshot. `Clarify mode` (for example `理清`, `定位`, or `分析`) returns the audited handoff without external task execution. `Action mode` (for example `做`, `执行`, or `完成`) compiles the S3 activity sub-poset into `D_t/Ready_t` and continues until a terminal state. A material ambiguity still uses the human-calibration gate rather than guessing a different F0.
 
 A Focus change selects a different view inside the same contract. A change to the root goal, subject, superior purpose, acceptance criteria, or constitutive selected-center sub-poset requires a new goal-contract/field version as appropriate and resets F0 confirmation; re-confirm only after the revised field passes formation again.
+
+#### Mandatory runtime evidence chain
+
+In a tool-capable invocation, `field_state.py` is the execution controller, not optional documentation. The only legal chain is:
+
+`init/load → formation event(s) → render-checkpoint → F0_CONFIRM/S0 → run-open → recorded S1/S2/S3 Focus substitutions → audited Execute when Action mode requires it → render-result`
+
+`run-open` defaults to `Global×0, Focus×3`, records the requested counts, and sets `continue_until_terminal=true`. The controller rejects stale confirmation, extra rounds, premature execution, cross-level replacement, parent-interface drift, a motion without state change/residual audit, and Focus without one or more verified recursive substitutions. Relative closure requires `P_req=∅`; `P_latent` and `Λ_t` may remain. If a motion replaces an address referenced by an unresolved legal `[◇]` residual, that same atomic motion must retain a reopenable Expansion interface or explicitly archive and migrate the residual to a retained child address; validation rejects a dangling `χ_t` link before the state is written. In Action mode, `CONTINUE_EXECUTION`, a plan, or remaining authorized Ready work is not terminal. `render-result` verifies the chain and derives counts and decision from state. If this controller cannot run or refuses the state, the Agent must report that Focus did not run and use `REMODEL_REQUIRED` or `BLOCKED`; it may not imitate the surface from context.
 
 ## 2. Complete relations and center candidates
 
@@ -137,6 +151,14 @@ Do not mistake any of these for the center:
 - the longest branch;
 - a language label shared by otherwise hollow objects.
 
+### 2.4 Derive parallel contribution without bloating the center
+
+Let `P_t^∥` contain legal tasks whose removal does not break the selected minimum center or F0 structural closure, but whose evidence-backed benefit to F0 exceeds the field's contribution threshold. A contributor needs: a legal root path; any local required dependencies; a typed `support` or `coupling` attachment to a center position, acceptance condition, or explicit join; an observable contribution signal; and a join that returns its result to F0. Missing attachment or join leaves it external, hypothesized, or residual rather than executable.
+
+Do not force incomparable contributors into the center axis. Their local required edges remain in `Π_t`; between components, preserve incomparability unless evidence establishes dependency. Benefit, popularity, or weight cannot create necessity. If F0 acceptance later requires a contributor, re-run center tests and create a new field version. If acceptance requires only an aggregate threshold or redundancy count, put that aggregate interface in the center while keeping substitutable contributors in `P_t^∥`.
+
+Schema 2.2 represents this derived view with valid graph nodes outside the selected center, typed `support/coupling` relations, local required dependencies, optional Action paths, task scores, and explicit join nodes. It has no first-class `P_t^∥` or dual-Ready field yet; the Agent must derive and audit the view rather than claim dedicated scheduler enforcement.
+
 ## 3. Recursive addresses and scale
 
 Use a full field view and an F0-facing address view together.
@@ -180,10 +202,10 @@ Represent the joint state as:
 ```text
 Σ_t =
 <F0, field_id, goal_contract_id, v_t, Γ_t,
- G_t, Π_t, 𝒦_t, K_t^v,
+ G_t, Π_t, 𝒦_t, K_t^v, P_t^∥,
  M_t, H_t, L_t,
  ActionFrontier_t, ExpansionFrontier_t, Compressed_t,
- R_t, χ_t, q_t, V_t, D_t, Ready_t, E_t, O_t,
+ R_t, χ_t, q_t, V_t, D_t^K, D_t^∥, Ready_t^K, Ready_t^∥, E_t, O_t,
  U_t, A_t, 𝒱_t^F>
 ```
 
@@ -194,9 +216,9 @@ Key distinctions:
 - `L_t` is Global Expansion resolution and must not be reused as execution progress.
 - `q_t` is the current Focus request and policy, not the center.
 - `V_t` is an unequal-depth view, not the whole field.
+- `P_t^∥` is the derived non-center contribution view; it retains attachment, local order, contribution evidence, and explicit joins.
 - `χ_t` links each unresolved structural difference to a realized, frontier, hypothesized, negative, or no-address position, with reach and absorption state.
-- `D_t` is the executable sub-poset induced by active addresses and every necessary predecessor or preserved interface.
-- `Ready_t` is the current dependency-ready wavefront of `D_t`.
+- `D_t^K/Ready_t^K` preserve the center execution closure; `D_t^∥/Ready_t^∥` contain selected contributors whose local predecessors and attachment prerequisites hold.
 - `E_t` is a finite execution snapshot, not a frozen task ontology.
 - `U_t` is the preserved update inbox; its `F0@U<n>` intake addresses are not legal theory addresses.
 - `A_t` is the address-motion ledger containing location, propagation, and old-to-new address relations.
@@ -209,7 +231,7 @@ Use modal marks relative to field and version:
 - `[-]`: prohibited by a current irreducible rule or locked contract;
 - `[∅]`: the current field has no legal way to generate, guarantee, or express the result.
 
-Modal address state, frontier class, and residual absorption state are independent. An ordinary `[◇]` frontier is not a residual merely because it is unexpanded; an unresolved residual may link to it until the address actually absorbs the difference. A residual may also link to an existing `[+]` address and remain unresolved. A temporary missing input is an operational gap, not automatically `[∅]` or a theoretical residual.
+Modal address state, frontier requirement, and residual activity/absorption are independent. Split Expansion positions into `P_t^req` (the parent contract currently requires opening, realization, or an effective interface) and `P_t^latent` (a calibrated legal address that is reopenable but not required this round). Split residual material into `Λ_t` (an inactive difference record whose address binding may be `bound`, `candidate`, or `unaddressed`) and `R_t^a` (an exposed or activated F0-relevant difference). `Λ_t` is not an address and never inherits `[◇]`; an ordinary `[◇]` frontier is not a residual. An active residual may link to `[◇]` or `[+]` until absorption. A temporary missing input is an operational gap, not automatically `[∅]` or a residual.
 
 ## 5. Legality and typed frontiers
 
@@ -226,7 +248,7 @@ A position may enter `ActionFrontier_t` only when:
 
 ### 5.2 ExpansionFrontier
 
-`ExpansionFrontier_t` contains legal `[◇]` positions or relations that can be opened as child fields. A branch deferred by budget or Focus remains here with its reason. It is not a residual merely because it was not selected.
+`ExpansionFrontier_t` contains legal `[◇]` positions or relations that can open as child fields. Mark each as `required` (`P_t^req`) or `latent` (`P_t^latent`). Relative closure clears `required`, not `latent`. A branch deferred by budget or Focus remains with its reason and requirement class; nonselection does not make it residual.
 
 ### 5.3 Compressed
 
@@ -267,13 +289,14 @@ For one bounded motion:
 
 1. gate candidates by ancestry, predecessors, permissions, modal state, and version;
 2. rank only legal peers;
-3. select any number of paths and assign a depth to each;
-4. preserve unselected required positions as expansion frontier or valid interfaces;
-5. write `ΔM_focus` atomically into `M_(t+1)` as `[◇]`;
-6. render the F0 view with unequal numeric suffixes;
-7. run residual and drift audits.
+3. select one or more current active positions; one round may select several positions;
+4. for every selected parent, validate a local three-position child center and its entry, internal order, exit, return interface, evidence, and residual audit;
+5. substitute all selected parents atomically in the active sub-poset, preserving incoming/outgoing dependencies, incomparable branches, and joins;
+6. preserve unselected required positions as compressed valid interfaces;
+7. write `ΔM_focus` and the new S-state atomically into `M_(t+1)`;
+8. run residual and drift audits.
 
-Focus may materialize deep potential addresses without requiring prior uniform expansion, but it cannot skip a necessary predecessor or declare the resulting address realized.
+Focus may materialize several child fields in one round without prior uniform Global expansion, but it cannot skip a necessary predecessor, jump across an unformed level, alter the protected parent interface, or declare the resulting address realized. In a chain-shaped view, replacing `k` parents with three child-center positions each changes length by `+2k`. The final unequal-depth activity view must remain an acyclic, relatively closed partial order consistent with F0.
 
 ## 7. Execute, Audit, and invalidation
 
@@ -283,9 +306,11 @@ Before execution, require the same F0 provisional-closure exit gate. `R_t` may b
 
 When the invocation assigns an action task, modeling is an internal motion rather than the default deliverable: continue from the stable field into legal Ready execution unless acceptance is already met or a calibration, authority, safety, or genuine-blocker gate requires a stop.
 
-Induce `D_t` from all active addresses and their necessary predecessors or valid compressed interfaces. Mark nodes `satisfied`, `locked`, `compressed-valid`, `pending`, `active`, `completed`, or `blocked`; form `Ready_t` from pending nodes whose predecessors hold. `F0` is the root goal and acceptance contract, while numeric suffixes navigate addresses. Neither is an execution queue. Execute along the `A→B→C→…` dependency order, permit incomparable Ready nodes to run in parallel, and retain multi-predecessor joins explicitly.
+Induce `D_t^K` from center-active addresses and their necessary predecessors or valid compressed interfaces. Derive `D_t^∥` from selected contributors, local predecessors, typed attachments, and joins. Mark nodes `satisfied`, `locked`, `compressed-valid`, `pending`, `active`, `completed`, or `blocked`; form `Ready_t^K` and `Ready_t^∥` separately. Preserve the `A→B→C→…` center order, run safe incomparable contributors in parallel, and retain joins explicitly. A `support/coupling` edge carries contribution but is not a required causal edge unless separately certified as `dependency`.
 
-Freeze a finite `E_t` from `Ready_t`. Record expected evidence, permissions, side-effect constraints, and rollback or failure handling. A resource queue may serialize incomparable items, but that serialization must not be written back as a causal edge.
+Freeze a finite `E_t` from `Ready_t^K ∪ Ready_t^∥`. Record expected evidence, permissions, side-effect constraints, contribution signals, joins, and rollback or failure handling. Center work retains structural priority. A resource queue may serialize incomparable contributors, but that serialization must not be written back as a causal edge.
+
+Audit center closure and contribution completion separately. One failed optional contributor does not fail F0 unless an explicit aggregate acceptance interface remains unmet. When that interface is unmet, block the center acceptance position; do not retroactively relabel every contributor as necessary.
 
 After execution, atomically update:
 
@@ -317,7 +342,7 @@ Never keep a descendant unconditionally `[+]` after its required support has fai
 
 ### 8.1 Classify before calling something a residual
 
-Classify address position and unresolved difference separately:
+Classify address position, activation, and unresolved difference separately:
 
 - existing represented address;
 - legal unexpanded frontier;
@@ -328,6 +353,8 @@ Classify address position and unresolved difference separately:
 - unresolved structural difference (true residual).
 
 A true residual must materially affect F0 and remain unabsorbed under the current contract, center, boundary, relation grammar, address system, or current execution result. Having a potential address does not by itself absorb it.
+
+Keep `Λ_t` outside the active residual ledger. In new records each latent residual stores a `bound`, `candidate`, or `unaddressed` address binding, potential F0 effect, activation condition, evidence, and destination; it does not carry `[◇]`. When an upper-level goal or reality change activates it, archive the latent record and route the transition to local absorption, a required frontier, candidate calibration/address birth, a new `R_t^a` with `[-]`/`[∅]` addressing result, or externalization. Merely existing does not trigger expansion or block closure.
 
 For every residual, store:
 
@@ -420,7 +447,7 @@ Allowed structural transitions:
 - `STOP`
 - `REMODEL_REQUIRED`
 
-After Audit, emit exactly one decision:
+After Audit, emit exactly one decision. `F0_COMPLETE` and provisional closure require `P_req=∅`; `P_latent≠∅` and `Λ_t≠∅` are allowed:
 
 - `F0_CONFIRMATION_REQUIRED`
 - `FIELD_FORMATION_REQUIRED`
@@ -439,9 +466,22 @@ Stop the run when F0 acceptance is met with evidence, the user stops or changes 
 
 ### Default rendering contract
 
-Always persist the panorama, active addresses, root-path sub-DAGs, child-field opening audits, motion deltas, typed frontiers, execution sub-poset, stable residual IDs, and full residual ledger. Before a stable product exists, render the candidate root direction, material formation blockers, and one formation/calibration/remodel decision. Once the exit gate passes but confirmation is pending, render only: `F0: <one sentence>`; the validated task-specific center axis with short labels; material `[◇]` residuals; and `F0_CONFIRMATION_REQUIRED`. Do not show the full contract, verbose residual IDs, F1/F2, or fabricated activity addresses by default.
+Always persist the panorama, S0-S3 active sub-posets, active addresses, root-path sub-DAGs, child-field opening audits, replacement records, interface hashes, motion deltas, typed frontiers, execution sub-poset, stable residual IDs, and full residual ledger. Before a stable product exists, render the candidate root direction, material formation blockers, and one formation/calibration/remodel decision. Once the exit gate passes but confirmation is pending, render only: `F0: <one sentence>`; the validated task-specific center axis with short labels; the legal Expansion-frontier count; material true residual counts; and `F0_CONFIRMATION_REQUIRED`. Frontier counts and residual counts are distinct: an unopened legal potential is not itself a residual. Do not fabricate activity addresses before S0.
 
-After provisional closure, the ordinary response hides detail unless it materially explains a stop. By default render: stable F0 and center axis; one **motion result**; a concise symbolized residual summary; and one next-state decision. For an inquiry, the answer itself is the motion result; for an action task, the delivered effect itself is the motion result. Do not duplicate it as “answer/result plus motion result.” `[◇]` names a residual with a potential absorption address, `[-]` a conflict/prohibition, and `[∅]` a current-field no-address result; an ordinary unexpanded branch is Frontier and is not shown as residual. Reveal details on requests such as `显示全景地址`, `显示活动地址`, `显示根路径`, `显示子场验证`, `显示剩余账本`, `显示 F0-F2 运动差分`, or `显示 Ready 执行顺序`.
+After confirmation, the default motion profile is `Focus ×3 (S0→S3)` with no mandatory Global round. An explicit request may set different counts, targets, depth, budget, or stop point. It cannot authorize a missing predecessor, unvalidated address, reversed dependency, cross-level replacement, or omitted required motion; stop with `EXPAND_REQUIRED` while `P_req` is nonempty.
+
+After confirmed-F0 motion, only `render-result` may emit this compact surface:
+
+```text
+F0：<确认后的根层>
+运动：Focus ×3（S0→S3）
+地址：生成 6 条，验证 3 条，必要待展开 0 条，普通待展开 3 条
+结果：<答案或执行成果>
+剩余：潜在Λ1 / 活动R2（绑定◇2） / 禁止结果-0 / 无地址结果∅0
+决策：CONTINUE_EXECUTION
+```
+
+These numbers are illustrative. The renderer obtains `生成` from event deltas, `验证` from current proofs, splits legal Expansion addresses by `required/latent`, and counts `Λ_t` and `R_t^a` separately. The Agent cannot supply them. For an inquiry, the answer is the result; for an action task, the delivered effect is the result. `[◇]` counts calibrated legal but unrealized addresses; an active residual remains an `R_t^a` record even when it binds such an address. `[-]` and `[∅]` count addressing results, not stored addresses or residual modalities. Reveal details on request.
 
 Chinese terminology is normative: F0 is `根层`; a complete path from F0 is `根路径`; the immediately containing level is `上一层`; an opened child is `下一层`. The JSON compatibility key `root_ancestry` must render as `根路径`, and legacy `ancestor_goal` must render as `根目标` or `F0`; never translate compatibility field names literally.
 

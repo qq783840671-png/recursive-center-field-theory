@@ -2,12 +2,14 @@
 
 Use this protocol when the user supplies a correction, new claim, counterexample, replacement example, new evidence, or proposed theory revision to an already persisted field.
 
+Under the v0.17 sidecar semantics, first preserve the parent task's actual update and evidence, then decide whether it binds a calibrated legal address, only an address candidate, or no current address. Do not assign `[◇]` while calibration is pending. Preserve `[-]` and `[∅]` as addressing results, and preserve latent differences independently from frontiers until an activation event routes them.
+
 ## 1. Preserve the root and separate three version axes
 
 - Keep `F0` as the stable logical root address and lineage anchor of the current field.
 - Allow the contract, center, order, payloads, and closure conditions carried by `F0` to change across field versions.
 - Create a distinct root field such as `F0′` only when the constitutive identity of the old field is no longer traceably preserved.
-- When an update changes the root goal or its acceptance contract, require a relatively closed `root-rebuild` with an explicit new F0 field version, advance the protected drift baseline to that audited version, reset F0 confirmation to `required`, display the revised candidate, and wait for explicit confirmation before further Survey, Global, Focus, or Execute motion.
+- When an authorized parent task changes the root goal or its acceptance contract, reconstruct a relatively closed `root-rebuild` with an explicit new F0 field version and advance the protected drift baseline to that audited version. If completing the rebuild would require authority or scope not present in the parent task, keep it as a reopen residual and let the parent workflow request that decision; Focus must not create an additional confirmation gate.
 - Keep these version axes separate:
   - runtime state revision: every persisted state event;
   - field-closure version: a new relatively closed field produced by address motion;

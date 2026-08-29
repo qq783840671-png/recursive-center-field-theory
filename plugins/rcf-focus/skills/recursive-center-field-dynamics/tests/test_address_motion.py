@@ -42,17 +42,28 @@ class AddressMotionTest(unittest.TestCase):
                 bypass=False,
                 note=None,
             )
-        self.run_quietly(
-            fs.cmd_f0_confirm,
-            path=str(path),
-            by="test:explicit-formation-bypass",
-            bypass=True,
-            note=None,
-        )
         state = fs.read_state(path)
-        self.assertEqual(state["field"]["f0_confirmation"]["status"], "bypassed")
-        self.assertEqual(state["execution"]["last_decision"], "FIELD_FORMATION_REQUIRED")
+        state["field"]["f0_confirmation"] = {
+            "status": "confirmed",
+            "confirmed_by": "test:preformed-fixture",
+            "confirmed_at_runtime_version": state["version"],
+        }
+        state["execution"]["last_decision"] = "EXPAND_REQUIRED"
+        # This maintenance fixture intentionally represents an older confirmed
+        # schema-2.2 state without the new S0 recursive Focus surface.
+        state.pop("recursive_focus", None)
+        fs.write_state(path, state)
         self.assertEqual(fs.validate_state(state), [])
+
+    def test_legacy_display_label_is_not_fabricated_child_field(self) -> None:
+        state = {"address_dynamics": {"legacy_display_addresses": ["F0:A1"]}}
+        node = {"address": "F0:A1", "modal_status": "[◇]"}
+        self.assertEqual(fs.child_field_opening_issues(state, node), [])
+        node["modal_status"] = "[+]"
+        self.assertIn(
+            "legacy display label must remain [◇]",
+            fs.child_field_opening_issues(state, node),
+        )
 
     @staticmethod
     def no_address_structure() -> dict:
@@ -704,13 +715,8 @@ class AddressMotionTest(unittest.TestCase):
                 state["address_dynamics"]["field_versions"]["heads"][0]["version_id"],
                 "FV-main-F0-2",
             )
-            self.run_quietly(
-                fs.cmd_f0_confirm,
-                path=str(path),
-                by="test:explicit-root-rebuild-bypass",
-                bypass=True,
-                note=None,
-            )
+            with self.assertRaisesRegex(ValueError, "explicit confirmation"):
+                fs.require_f0_confirmation(fs.read_state(path), "EXECUTE")
             self.assertEqual(fs.validate_state(fs.read_state(path)), [])
 
 

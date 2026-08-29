@@ -1,0 +1,57 @@
+name: Theory or evidence challenge
+description: Report a contradiction, counterexample, scope error, attribution problem, or evidence mismatch.
+title: "[Theory]: "
+labels: ["theory-review"]
+body:
+  - type: dropdown
+    id: challenge-type
+    attributes:
+      label: Challenge type
+      options:
+        - Internal contradiction
+        - Counterexample
+        - Scope or level confusion
+        - Evidence overstatement
+        - Attribution or comparison problem
+        - Unclear definition
+    validations:
+      required: true
+  - type: input
+    id: target
+    attributes:
+      label: Exact target
+      description: Give the document, version, heading, quotation, or structural address.
+    validations:
+      required: true
+  - type: textarea
+    id: claim
+    attributes:
+      label: Claim being challenged
+      description: State the strongest precise claim you think the current text makes.
+    validations:
+      required: true
+  - type: textarea
+    id: challenge
+    attributes:
+      label: Contradiction, counterexample, or evidence
+      description: Show the incompatible proposition, smallest counterexample, source, or failed implication.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Proposed scope or repair
+      description: Explain whether the claim should be rejected, narrowed, relabeled, or moved to an open question.
+    validations:
+      required: true
+  - type: checkboxes
+    id: discipline
+    attributes:
+      label: Evidence discipline
+      options:
+        - label: I distinguished definitions, implementation behavior, hypotheses, and empirical claims.
+          required: true
+        - label: I checked the current release scope and did not rely only on an obsolete historical text.
+          required: true
+        - label: I removed private or copyrighted material that I am not allowed to publish.
+          required: true

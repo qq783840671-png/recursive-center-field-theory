@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions and open discussion
+    url: https://github.com/qq783840671-png/recursive-center-field-theory/discussions
+    about: Use Discussions for interpretation, applications, comparisons, and questions that are not actionable defects.
+  - name: Sensitive security report
+    url: https://github.com/qq783840671-png/recursive-center-field-theory/security/advisories/new
+    about: Report vulnerabilities privately; never disclose exploit details in a public issue.

@@ -1,0 +1,44 @@
+name: Documentation problem
+description: Report a broken link, unclear explanation, translation issue, stale diagram, or navigation problem.
+title: "[Docs]: "
+labels: ["documentation"]
+body:
+  - type: input
+    id: location
+    attributes:
+      label: File or page
+      description: Provide the path, URL, and heading when possible.
+    validations:
+      required: true
+  - type: dropdown
+    id: problem-type
+    attributes:
+      label: Problem type
+      options:
+        - Broken link
+        - Unclear wording
+        - Translation
+        - Stale version or diagram
+        - Missing navigation
+        - Accessibility or rendering
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: What is wrong
+      description: Quote only the minimum needed and explain the reader impact.
+    validations:
+      required: true
+  - type: textarea
+    id: proposed
+    attributes:
+      label: Suggested correction
+      description: Optional wording, target link, or revised structure.
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Publication check
+      options:
+        - label: This report contains no credentials, private conversations, or unpublished material.
+          required: true

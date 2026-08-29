@@ -1,7 +1,7 @@
 interface:
-  display_name: "Focus — Stable Task Execution"
-  short_description: "Stabilize complex tasks before executing them"
-  default_prompt: "Use $recursive-center-field-dynamics to stabilize this task, confirm F0, and execute the legal next steps."
+  display_name: "Focus — Constructive Field Control"
+  short_description: "Drive and revise live knowledge fields"
+  default_prompt: "Use $recursive-center-field-dynamics to maintain the live field, act on one necessary frontier, and revise closure when evidence changes."
 
 policy:
   allow_implicit_invocation: false

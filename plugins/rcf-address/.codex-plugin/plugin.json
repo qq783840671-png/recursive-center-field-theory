@@ -1,6 +1,6 @@
 {
   "name": "rcf-address",
-  "version": "0.1.0-alpha.3",
+  "version": "0.4.0-alpha.1",
   "description": "Generate, validate, register, query, and audit field-relative dynamic addresses.",
   "author": {
     "name": "qq783840671-png",

@@ -23,8 +23,8 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Compile packaged helper
-        run: python -m py_compile plugins/rcf-focus/skills/recursive-center-field-dynamics/scripts/field_state.py plugins/rcf-address/skills/recursive-field-addressing/scripts/address_engine.py
+      - name: Compile packaged helpers
+        run: python -m py_compile plugins/rcf-focus/skills/recursive-center-field-dynamics/scripts/focus_runtime.py plugins/rcf-focus/skills/recursive-center-field-dynamics/scripts/field_state.py plugins/rcf-address/skills/recursive-field-addressing/scripts/address_engine.py
 
       - name: Run Address engine self-test
         run: python plugins/rcf-address/skills/recursive-field-addressing/scripts/address_engine.py self-test
@@ -32,5 +32,5 @@ jobs:
       - name: Run public example tests
         run: python -m unittest discover -s tests -p "test_*.py" -v
 
-      - name: Run frozen Focus source tests
+      - name: Run Focus source tests
         run: python -m unittest discover -s plugins/rcf-focus/skills/recursive-center-field-dynamics/tests -p "test_*.py" -v

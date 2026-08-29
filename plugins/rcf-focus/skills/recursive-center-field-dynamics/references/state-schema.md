@@ -1,8 +1,12 @@
 # Dynamic Field State Schema
 
+> Legacy schema reference: this file documents `field_state.py` and schema 2.2. The default two-stage Focus runtime uses `focus_runtime.py`; see `two-stage-runtime.md`. Do not mix the two state formats.
+
+> v0.16 migration: schema-2.2 latent records with `modal_status=[◇]` and `address_relation` remain readable, but new records use `address_binding.kind=bound|candidate|unaddressed` and omit `modal_status`. Address hypotheses live in a candidate ledger; only calibrated legal addresses use `[◇]`. Activated `[-]`/`[∅]` values are addressing results, not addresses.
+
 Use one JSON state for multi-turn or tool-using work. The state is operational memory, not a claim that the field is objectively complete.
 
-Schema `2.2` is the current joint model. It preserves the schema-2.1 field-formation, graph/order/frontier, residual, execution, and drift surfaces, and adds address-motion maintenance: a raw update inbox, explicit update structuring and application, a field-closure-version DAG, and a version-qualified address-lineage ledger.
+Schema `2.2` is the current joint model. Its additive current profile preserves earlier 2.2 snapshots while new writes distinguish required/latent Expansion addresses and latent/active residuals. It also keeps address-motion maintenance and requires strict runs to commit confirmed `S0` plus auditable recursive Focus substitutions `S1...Sn`. Missing additive fields in an older 2.2 snapshot mean “legacy-unrecorded”; the helper treats an untyped Expansion item as `latent` for compatibility and never invents latent-residual history.
 
 Schemas `1.0` through `2.1` remain readable, validatable, and summarizable. They are read-only compatibility formats: the helper must not mutate or silently upgrade their claims. Schema `2.1` lacks address-motion maintenance; schema `2.0` additionally used the legacy field name `ancestor_goal` and lacked field-formation state, `χ`, absorption history, and `D_t/Ready_t`.
 
@@ -15,7 +19,7 @@ Schemas `1.0` through `2.1` remain readable, validatable, and summarizable. They
 - [Address-motion maintenance](#address-motion-maintenance)
 - [General relation graph and necessary order](#general-relation-graph-and-necessary-order)
 - [Center candidates and selection](#center-candidates-and-selection)
-- [Three frontiers and modal state](#three-frontiers-and-modal-state)
+- [Frontiers, residual activity, and modal state](#frontiers-residual-activity-and-modal-state)
 - [Global Expansion and Focus](#global-expansion-and-focus-22)
 - [Execution audit and invalidation](#execution-audit-and-invalidation)
 - [Residuals and SCC analysis](#residuals-and-scc-analysis)
@@ -39,6 +43,7 @@ The required top-level shape is:
   "evidence": [],
   "drift": {},
   "address_dynamics": {},
+  "recursive_focus": {},
   "history": []
 }
 ```
@@ -64,26 +69,28 @@ Version `0` is the initialization exception: the root address `F0` is created as
   "phase": "forming",
   "contract_status": "provisional",
   "f0_confirmation": {
-    "status": "required|confirmed|bypassed",
+    "status": "required|confirmed",
     "confirmed_by": null,
-    "confirmed_at_runtime_version": null
+    "confirmed_at_runtime_version": null,
+    "checkpoint_hash": null
   },
+  "f0_checkpoint": null,
   "ambiguities": [],
   "human_calibration": {"status": "not-required", "items": []}
 }
 ```
 
-The listed field keys except `f0_confirmation` are mandatory in schemas 2.1 and 2.2; `f0_confirmation` is mandatory in schema 2.2. `root_goal` is provisional content carried by the logical root address while the field forms; only the stable product becomes user-facing F0. Schema 2.2 requires `field.id` and `legal_roots` to preserve the address `F0`. A root rebuild may revise `root_goal` only through a `root-rebuild` address motion whose audit creates an explicit root field version. The same atomic commit advances the protected drift baseline, resets confirmation to `required`, and normally sets `FIELD_FORMATION_REQUIRED`; the rebuilt graph/order/center must form and pass the exit gate before `F0_CONFIRM` is legal. `ancestor_goal` is accepted only in read-only schema 2.0 and earlier files. `FIELD_FORM`, `CENTER_ADJUST`, `HUMAN_CALIBRATE`, and `SURVEY` are legal before confirmation because they construct the candidate. Global Expansion, Focus, planning, and Execute require a formed candidate plus explicit confirmation or bypass.
+The listed field keys except `f0_confirmation` are mandatory in schemas 2.1 and 2.2; `f0_confirmation` is mandatory in schema 2.2. `root_goal` is provisional content carried by the logical root address while the field forms; only the stable product becomes user-facing F0. Schema 2.2 requires `field.id` and `legal_roots` to preserve the address `F0`. A root rebuild may revise `root_goal` only through a `root-rebuild` address motion whose audit creates an explicit root field version. The same atomic commit advances the protected drift baseline, resets confirmation to `required`, and normally sets `FIELD_FORMATION_REQUIRED`; the rebuilt graph/order/center must form and pass the exit gate before `F0_CONFIRM` is legal. `ancestor_goal` is accepted only in read-only schema 2.0 and earlier files. `FIELD_FORM`, `CENTER_ADJUST`, `HUMAN_CALIBRATE`, and `SURVEY` are legal before confirmation because they construct or recalibrate the candidate. Global Expansion, Focus, planning, and Execute require a formed candidate plus explicit confirmation. A legacy stored `bypassed` value may be read for compatibility, but it is unconfirmed and authorizes only formation/calibration/remodel decisions.
 
-The F0 provisional-closure gate is derived rather than persisted as another source of truth. A candidate is confirmable only when: `contract_status=stable-for-execution`; an earlier audited formation motion actually advanced `panorama.map_version`; graph and necessary order are `validated`; the selected center is `valid` and `minimality_status=validated`; and human calibration is not pending. After confirmation, the same structure governs Global, Focus, planning, and Execute. Validating a graph additionally requires every non-root valid node and every valid required dependency to reference stored evidence through `evidence_ids`. An empty `panorama.residuals` ledger is valid when the motion audit records why no relevant unabsorbed difference remains. If active residuals exist, every item must satisfy all of the following: `modal_status=[◇]`; `address_relation.kind=frontier`; `gate_status=legal`; the address is a valid `[◇]` graph node retained in the Expansion frontier; its root path and required predecessors audit as legal; its child-field opening is `validated`; reach is evidence-supported `next` or bounded `finite-deep`; and absorption is not `human-pending` or `prohibited`. A hypothesized/forming child or reach `unknown` (`[◇,d=?]`) is valid open formation state but cannot support closure. Any active `[-]`, `[∅]`, rootless, missing-predecessor, realized-but-unabsorbed, human-pending, or prohibited item leaves the gate `open`.
+The F0 provisional-closure gate is derived rather than persisted as another source of truth. A candidate is confirmable only when: `contract_status=stable-for-execution`; an earlier audited formation motion advanced `panorama.map_version`; graph/order and the minimum center are validated; human calibration is not pending; and no Expansion item has `expansion_requirement=required`. Ordinary latent Expansion addresses and `panorama.latent_residuals` may remain. `render-checkpoint` fingerprints the root contract and selected center; confirmation binds that hash. An empty active `panorama.residuals` ledger is valid with an audit reason. If active residuals exist, each must use `[◇]`, a legal retained frontier address, a validated finite-reach opening, and a nonblocking absorption state. A hypothesized/forming child or unknown reach cannot support closure. Any active `[-]`, `[∅]`, rootless, missing-predecessor, realized-but-unabsorbed, human-pending, or prohibited item leaves the gate open.
 
 A later change to the selected center ID, members, or required relations resets `f0_confirmation` to `required`; the revised field must pass formation again before re-confirmation.
 
 ### Presentation and terminology contract
 
-Before the candidate passes formation, render its root direction, material blockers, and one formation/calibration/remodel decision; do not call it stable F0. After the gate passes but confirmation is pending, render `F0: <one sentence>`, the validated task-specific center/partial-order axis, any material `[◇]` residuals, and `F0_CONFIRMATION_REQUIRED`; generate no F1/F2 snapshot. The default initial modeling cycle is `F0 → F1(Global #1) → F2(Focus #1)` only after `F0_CONFIRM`. These labels describe bounded provenance snapshots; they do not add schema fields, determine execution order, or limit later versioned recursion.
+Before formation passes, render the root direction, blockers, and one decision; do not call it stable F0. After the gate passes, render F0, center axis, separate `P_req/P_latent` counts, separate `Λ_t/R_t^a` counts, and `F0_CONFIRMATION_REQUIRED`; generate no S-state. `F0_CONFIRM` commits `S0`, followed by the default `S0→S1→S2→S3`.
 
-All detailed addresses remain persisted even when the ordinary response is compact. After provisional closure, render only F0 and its center axis, one motion result, a symbolized residual summary, and one next-state decision. The answer to a question or delivered effect of an action is itself the motion result and must not be repeated under a second label. Full F0–F2 diffs, child-field opening audits, panorama, active addresses, root paths, motion deltas, frontiers, `D_t/Ready_t`, stable residual IDs, and the residual ledger are on-demand views. Task-irrelevant external information is hidden.
+All detailed addresses remain persisted even when the ordinary response is compact. After confirmation and motion, only `render-result` emits the six lines. It derives the confirmed F0, actual profile, unique event-delta addresses, currently validated subset, legal Expansion frontier, active residual modal counts, and decision from state; callers supply only the domain result text. The answer to a question or delivered effect of an action is itself the result and must not be repeated under a second label. Full S0-S3 diffs, child-field opening audits, panorama, active addresses, root paths, motion deltas, frontiers, `D_t/Ready_t`, stable residual IDs, and the residual ledger are on-demand views. Task-irrelevant external information is hidden.
 
 The JSON keys `root_ancestry`, `compressed_ancestor_addresses`, and legacy `ancestor_goal` remain unchanged for compatibility. They are not display vocabulary. Chinese output renders them as `根路径`, `根路径中的压缩接口`, and `根目标／F0`; it renders F0 as `根层`, an immediate parent as `上一层`, and a child as `下一层`. Never translate the compatibility field names literally in current user-facing text.
 
@@ -95,8 +102,10 @@ Payload arguments accept inline JSON or `@path/to/payload.json`; `@-` reads stan
 field_state.py init STATE --name NAME --goal GOAL [--success CRITERION ...]
 field_state.py validate STATE
 field_state.py summary STATE
+field_state.py render-checkpoint STATE
 field_state.py f0-confirm STATE --by CONFIRMER [--note NOTE]
-field_state.py f0-confirm STATE --by EXPLICIT-BYPASS-SOURCE --bypass [--note NOTE]
+field_state.py run-open STATE --mode action|inquiry|clarify [--global-count 0] [--focus-count 3]
+field_state.py render-result STATE --result TEXT
 field_state.py update-receive STATE --text TEXT [--source SOURCE] [--source-ref REF] [--evidence-id ID ...]
 field_state.py update-structure STATE --update-id U1 --structure-json @motion.json
 field_state.py update-apply STATE --motion-id AM1 --address-delta-json @delta.json
@@ -110,7 +119,79 @@ field_state.py transition STATE --type EXECUTE --note NOTE --execution-audit-jso
 field_state.py transition STATE --type INVALIDATE --note NOTE --invalidation-json @invalidation.json
 ```
 
-`f0-confirm` records the response to an already displayed, formed candidate as an audited `F0_CONFIRM` event. Normal confirmation is rejected until the pre-confirmation field-formation gate passes; `--bypass` remains an explicit escape and does not bypass downstream closure gates. All mutation commands first validate the source state, mutate a deep copy, run drift and full next-state validation, then use a same-directory temporary file plus atomic replace. Schemas `1.0`–`2.1` accept only `validate` and `summary`.
+`render-checkpoint` persists the displayed F0 fingerprint. `f0-confirm` binds explicit acceptance to that fingerprint. `run-open` records the mode and requested Global/Focus counts; Global, Focus, planning, and Execute are rejected without its open profile or in the wrong order. `render-result` rejects incomplete/unproven profiles, Action completion without an Execute event, `F0_COMPLETE` with active residuals or executable pending work, and repeated rendering. It writes `RUN_RENDER` with state-derived counts and a result digest. All mutations validate a deep copy before atomic replacement. Schemas `1.0`–`2.1` accept only `validate` and `summary`.
+
+Schema 2.2 currently derives parallel contribution `P_t^∥` rather than persisting a new top-level object. A contributor is a valid graph node outside the selected center with a legal root path, any local required dependencies in `panorama.order`, a typed `support` or `coupling` attachment to a center/acceptance/join node, evidence-backed contribution scores, and—when selected—an optional Action path that returns through an explicit join. Multiple such Action paths may be incomparable and Ready together. The schema does not yet enforce a contribution threshold or expose separate `D_t^K/D_t^∥` and `Ready_t^K/Ready_t^∥` fields; the Skill and protocol must derive and audit those views without representing weight as necessity.
+
+The current execution object may include:
+
+```json
+{
+  "motion_profile": {
+    "status": "unset|open|rendered",
+    "mode": "action|inquiry|clarify|null",
+    "global_count": 1,
+    "focus_count": 3,
+    "continue_until_terminal": true,
+    "starting_recursive_round": 0,
+    "confirmation_version": 3,
+    "checkpoint_hash": "sha256:...",
+    "opened_at_runtime_version": 4,
+    "rendered_at_runtime_version": null
+  }
+}
+```
+
+New states initialize this profile as `unset`. Older schema-2.2 states remain readable, but a new strict run must open a profile and set `continue_until_terminal=true`. `F0_CHECKPOINT`, `RUN_OPEN`, and `RUN_RENDER` are runtime-proof events, not address-generating field motions.
+
+### Recursive Focus S-states
+
+New states initialize:
+
+```json
+{
+  "recursive_focus": {
+    "required_focus_rounds": 3,
+    "child_center_width": 3,
+    "s0_confirmation_version": null,
+    "current_snapshot_id": null,
+    "snapshots": []
+  }
+}
+```
+
+`F0_CONFIRM` atomically commits `S0` from the selected minimum-sufficient center. Every Focus delta then includes one or more simultaneous substitutions:
+
+```json
+{
+  "recursive_replacements": [
+    {
+      "parent_address": "F0:C",
+      "child_center_addresses": ["F0:C1", "F0:C2", "F0:C3"]
+    },
+    {
+      "parent_address": "F0:E",
+      "child_center_addresses": ["F0:E1", "F0:E2", "F0:E3"]
+    }
+  ]
+}
+```
+
+The controller derives the next snapshot. A snapshot contains `state_id`, `focus_round`, `source_state_id`, `active_addresses`, `active_relations`, expanded parents, replacement records, `closure_status`, the F0 checkpoint hash, runtime version, and canonical `state_hash`.
+
+Enforce:
+
+- every replacement parent occurs in the immediately previous active sub-poset;
+- one round may replace several parents, but cannot replace the same parent twice or share a child;
+- every parent exposes exactly three directly bound, `validated` child-field centers;
+- required dependency edges connect parent to child entry and order the three child-center positions;
+- substitution preserves all predecessor/successor interfaces, incomparable branches, and joins;
+- the protected parent interface hash is unchanged;
+- the resulting active sub-poset is acyclic and `relative-closed`;
+- for a chain view with `k` replacements, active length changes by `+2k`;
+- S-state IDs are contiguous and their hashes recompute.
+
+The parent remains the persistent field identity and reopen interface, but its three children replace it in the current active closure sub-poset. Hidden rendering never permits hidden or unverified state.
 
 ### Address-motion maintenance
 
@@ -228,6 +309,8 @@ Schema 2.2 enforces these root invariants:
 - `F0` may be retained but never moved, split, merged, retired, or assigned a different root address inside the same lineage;
 - old schemas are never given inferred inbox, lineage, or field-version records.
 
+Schema 2.2 may carry `address_dynamics.legacy_display_addresses` only as an explicit migration quarantine for old numeric section labels that were created before recursive field-opening audits existed. Each listed item must be an F0-facing numeric label, remain `[◇]`, and stay out of Focus and every frontier. The exception prevents a fabricated child-field certificate; it does not legalize the label as a new recursive address. Reopening such content must generate a new audited child address from its validated parent binding.
+
 Read [maintenance.md](maintenance.md) for classification, minimum upward propagation, closure, and counterexample rules.
 
 ### General relation graph and necessary order
@@ -292,7 +375,7 @@ Read [maintenance.md](maintenance.md) for classification, minimum upward propaga
 }
 ```
 
-Only a valid `dependency` relation with `necessity: required` can enter `panorama.order`. Non-dependency relations must use `necessity: null`; conditional dependencies remain in `G` but are not order edges. When graph status is `validated`, every non-root valid node and every valid required dependency must carry non-empty `evidence_ids` that resolve in the top-level evidence ledger. Every numeric recursive node such as `F0:A1` must carry `field_opening_status` and `field_opening_audit`. `hypothesized` and `forming` are `[◇,d=?]` address hypotheses that may remain in Expansion Frontier but may not enter Action/active Focus, support closure, or become `[+]`. `validated` requires the stable local contract, typed graph, acyclic necessary order, selected minimum-sufficient center, recursive parent/return interface, and residual audit to agree with an inline `state_snapshot`; the helper recomputes its canonical SHA-256 and rejects mismatch or malformed structure. This proves recorded structural consistency, not the truth of domain evidence.
+Only a valid `dependency` relation with `necessity: required` can enter `panorama.order`. Non-dependency relations must use `necessity: null`; conditional dependencies remain in `G` but are not order edges. When graph status is `validated`, every non-root valid node and every valid required dependency must carry non-empty `evidence_ids` that resolve in the top-level evidence ledger. Every numeric recursive node such as `F0:A1` must carry `field_opening_status` and `field_opening_audit`. Legacy schema 2.2 encoded `hypothesized` and `forming` as `[◇,d=?]`; migration treats them as address candidates without modality, so they may not enter a legal Frontier, Action/active Focus, support closure, or become `[+]`. `validated` requires the stable local contract, typed graph, acyclic necessary order, selected minimum-sufficient center, recursive parent/return interface, and residual audit to agree with an inline `state_snapshot`; the helper recomputes its canonical SHA-256 and rejects mismatch or malformed structure. This proves recorded structural consistency, not the truth of domain evidence.
 
 ```json
 {
@@ -344,7 +427,7 @@ An unresolved cyclic SCC in the required dependency projection is excluded from 
 
 Candidates may remain incomparable. `selected` is nullable but, when non-null, must reference a valid candidate. Candidate members and relations must lie in the derived order; all selected relation IDs must be required dependency edges whose endpoints remain inside the candidate. A candidate cannot self-certify minimality: `minimality_status=validated` is legal only when the seven named tests are all `pass` or explicitly `not-applicable`, each has a rationale, and every `pass` references evidence already stored in `evidence`.
 
-### Three frontiers and modal state
+### Frontiers, residual activity, and modal state
 
 Schema 2.1 uses three explicit frontiers:
 
@@ -359,10 +442,22 @@ Schema 2.1 uses three explicit frontiers:
 ```
 
 - `action`: legal and dependency-ready `[◇]` addresses eligible for execution. Every execution queue address must occur here.
-- `expansion`: legal `[◇]` addresses eligible for Global Expansion or Focus penetration.
+- `expansion`: legal `[◇]` addresses eligible for Global Expansion or Focus penetration. Each current item carries `expansion_requirement: required|latent`; a missing value in an older 2.2 snapshot is read as `latent`.
 - `compressed`: `[◇]` interfaces with a contract and `reopen_address`; their exposure is `compressed`, `locked`, or `reopen-required`.
 
-Action and Expansion items use the structured path fields: canonical address, display address, complete root-path sub-DAG (stored as `root_ancestry`), required predecessors, structural necessity, dependency readiness, gate result, depth, scores, status, and optional `residual_ids`. A residual link does not turn the frontier node itself into a residual. A single address cannot be present in more than one frontier class in the same version.
+Action and Expansion items use the structured path fields: canonical address, display address, complete root-path sub-DAG, required predecessors, structural necessity, dependency readiness, gate result, depth, scores, status, active `residual_ids`, and `latent_residual_ids`. A link does not turn the frontier node into a residual. A single address cannot occur in more than one frontier class.
+
+```json
+{
+  "address": "F0:C3.1",
+  "modal_status": "[◇]",
+  "expansion_requirement": "required|latent",
+  "residual_ids": [],
+  "latent_residual_ids": []
+}
+```
+
+`required` is `P_t^req`: current parent closure must open/realize it or replace it with a valid interface. `latent` is `P_t^latent`: legal and reopenable but not required this round. Relative closure requires `P_t^req=∅`, not an empty Expansion frontier.
 
 Modal meanings are operational:
 
@@ -372,6 +467,37 @@ Modal meanings are operational:
 - `[∅]`: result that the field cannot independently generate or legally express; it is never an ordinary frontier.
 
 Known prohibitions and impossibilities need not be misclassified as true residuals. `panorama.modal_results` stores stable `[-]` and `[∅]` findings separately from motion-produced residuals.
+
+`panorama.latent_residuals` stores `Λ_t`, not active `R_t^a`:
+
+```json
+{
+  "id": "LR1",
+  "classification": "latent-residual",
+  "residual_type": "structural",
+  "description": "future material",
+  "potential_effect_on_f0": "what changes if activated",
+  "activation_condition": "upper-level goal or reality trigger",
+  "produced_by": {"motion": "FOCUS", "address": "F0:C3.1"},
+  "modal_status": "[◇]",
+  "possible_destination": "downward-expansion",
+  "evidence_status": "inferred",
+  "activation_status": "latent",
+  "address_relation": {
+    "kind": "frontier",
+    "address": "F0:C3.1",
+    "gate_status": "legal",
+    "reach": {
+      "kind": "finite-deep",
+      "estimated_expansions": 2,
+      "evidence_status": "inferred"
+    },
+    "conflict_with": []
+  }
+}
+```
+
+An audited motion may add `latent_residuals`, activate entries with `activated_latent_residuals`, or disposition them with `absorbed_latent_residuals`. Activation names the new active residual ID. The helper moves the old record to `latent_residual_history` with transition version and provenance; it never deletes lineage. Latent records may remain at closure because their activation condition has not occurred.
 
 ### Global Expansion and Focus 2.2
 
@@ -386,6 +512,9 @@ Both operations consume a full motion delta:
   "frontiers_after": {"action": [], "expansion": [], "compressed": []},
   "residuals": [],
   "absorbed_residuals": [],
+  "latent_residuals": [],
+  "activated_latent_residuals": [],
+  "absorbed_latent_residuals": [],
   "empty_residual_reason": "required when residuals is empty",
   "modal_results": [],
   "evidence": [],
@@ -423,6 +552,9 @@ An `EXECUTE` transition accepts:
   "evidence": [],
   "residuals": [],
   "absorbed_residuals": [],
+  "latent_residuals": [],
+  "activated_latent_residuals": [],
+  "absorbed_latent_residuals": [],
   "empty_residual_reason": "required when residuals is empty",
   "modal_results": [],
   "frontiers_after": {"action": [], "expansion": [], "compressed": []},
@@ -433,7 +565,7 @@ An `EXECUTE` transition accepts:
 }
 ```
 
-Completion and blockage records must identify existing Action addresses, include non-empty `evidence_ids`, and reference evidence already stored or supplied by the same payload. `realized_addresses` must exactly equal the set of completed addresses; blocked addresses are not realized. Every addressed item is consumed from the Action frontier in `frontiers_after`. The prior graph node must be valid and `[◇]`. Execution queue, active item, completed, blocked, panorama, residuals, and history update atomically. Execute is rejected while the derived F0 provisional-closure gate is open; an active `[-]` or `[∅]` must first be dispositioned by a repair, remodel, or ascent motion.
+Completion and blockage records must identify existing Action addresses, include evidence, and reference stored or supplied IDs. `realized_addresses` exactly equals completed addresses; blocked ones stay unrealized. Addressed items leave the Action frontier. Execution queue, panorama, active/latent residual transitions, and history update atomically. Execute is rejected while the F0 gate is open; an active `[-]` or `[∅]` must first be dispositioned.
 
 Before execution, the helper derives an executable sub-poset from Action paths plus all required predecessors and preserved interfaces:
 
@@ -461,7 +593,7 @@ Each invalidation contains `address`, `reason`, a required existing `evidence_id
 
 ### Residuals, addresses, and SCC analysis
 
-Schema-2.1 residual types are `structural`, `non-poset`, `execution-failure`, `unexpected-result`, `unmet-premise`, and `invalidation`. `panorama.residuals` stores active unresolved structural differences; `panorama.residual_history` stores absorbed records. Address state and absorption state are independent: a residual may point to an existing `[+]` address and remain unresolved, while a `[◇]` frontier is not itself a residual merely because it is unexpanded.
+Residual types are `structural`, `non-poset`, `execution-failure`, `unexpected-result`, `unmet-premise`, and `invalidation`. `panorama.residuals` stores active `R_t^a`; `residual_history` stores absorbed active records; `latent_residuals` stores `Λ_t`; `latent_residual_history` preserves activation or disposition. Address state, frontier requirement, residual activity, and absorption are independent.
 
 Each active residual additionally requires:
 
@@ -639,7 +771,7 @@ The center is the non-deletable minimum load-bearing dependency sub-poset for th
 
 ## F0-facing address convention
 
-Store a canonical parent-facing address with the containing field prefix, for example `F0:B1.1.2.3`, and render it in that field's Focus view as `B1.1.2.3`. The root letter identifies a center-axis position; each numeric segment records one returned recursive penetration step. Several active addresses may share the same root letter. A fully opened child field keeps a unique `field_id`, parent binding, local letter center, internal breadcrumb, and `field_opening_audit`. While it is the current object of attention, render that child as the active local `F0`; when returning to the containing field, compress it back to the governing root letter plus numeric suffix. Never represent child fields as parallel F1/F2 objects, because F1/F2 are provenance snapshots only.
+Store a canonical parent-facing address with the containing field prefix, for example `F0:B1.1.2.3`, and render it in that field's Focus view as `B1.1.2.3`. The root letter identifies a center-axis position; each numeric segment records one returned recursive penetration step. Several active addresses may share the same root letter. A fully opened child field keeps a unique `field_id`, parent binding, local letter center, internal breadcrumb, and `field_opening_audit`. While it is the current object of attention, render that child as the active local `F0`; when returning to the containing field, substitute its validated local center into the current S-state and retain the parent as the protected interface and reopen address. Never represent child fields as parallel F-layers; S0-Sn name active sub-poset states, not child identities.
 
 ## Focus
 

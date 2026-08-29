@@ -5,7 +5,7 @@
 Address is a stateful partial mapping, not a numbering convention:
 
 ```text
-Φ_t(x, F_t, Γ_t, G_t, Π_t, K_t, R_t)
+Φ_t(x, F_t, Γ_t, G_t, Π_t, K_t, P_t^req, P_t^latent, R_t)
   ⇀ (F_(t+1), identity_F(x), address_(t+1)(x), R_(t+1))
 ```
 
@@ -36,6 +36,8 @@ When no confirmed client field exists:
 5. preserve multiple viable centers or return `REMODEL_REQUIRED` when none survives;
 6. resolve material ambiguity during formation; show the stable product and require confirmation before address motion when identity or address legality depends on the user's intended field.
 
+In engine 0.4, confirmation is persisted as an evidence-bound formation state (`confirmed` or traceably `reused`). A candidate field is not an active root merely because its contract text is syntactically complete.
+
 Field formation itself may produce residuals. Do not continue while an active `[-]` or `[∅]` blocks a coherent field; split, calibrate, rebuild, or ascend first.
 
 This order is constitutive. Do not start from a requested result, guessed identity, suffix, or similarity match and then reverse-engineer a root path. An address is downstream of the field, graph, order, and tested center; it cannot certify the structure that was invented to justify it.
@@ -47,6 +49,7 @@ For candidate address `a` in field version `F_t`, require:
 ```text
 Legal(a, F_t) =
   rooted_in_F0(a)
+  AND parent_binding_and_return_valid(a)
   AND typed_root_path_present(a)
   AND predecessors_satisfied_or_interfaced(a)
   AND boundary_and_permission_compliant(a)
@@ -54,11 +57,11 @@ Legal(a, F_t) =
   AND modal_state_allowed(a)
 ```
 
-Heat, relevance, cost, popularity, suffix length, lexical frequency, or embedding proximity can rank legal peers but cannot repair a missing root or predecessor.
+Heat, relevance, contribution, uncertainty, interaction risk, cost, popularity, suffix length, lexical frequency, or embedding proximity can rank legal peers but cannot repair a missing root or predecessor. Contribution metadata requires an explicit decomposition contract and evidence; it does not imply that deeper addresses have monotonically smaller empirical effects.
 
 The root path is a typed subgraph, not necessarily a list. Preserve incomparable branches, joins, compressed interfaces, and cross-version feedback.
 
-Every numeric recursive node stores `field_opening_status=hypothesized|forming|validated`. The first two states are `[◇,d=?]` address hypotheses: retain them in Frontier/residuals, but never use them for provisional closure, executable views, or realization. A validated endpoint stores `field_opening_audit` for its local F0 contract, complete typed graph, necessary order, tested center, recursive parent/return interface, residual audit, evidence, and an inline restorable `state_snapshot`. Recompute its canonical hash and validate the snapshot graph/order/center rather than trusting the certificate shell.
+Every proposed numeric recursive node starts in `address_candidates` with `field_opening_status=hypothesized|forming` and no address modality. Never place it in a legal Frontier or use it for provisional closure, executable views, or realization. A validated endpoint is born as a calibrated legal `[◇]` address and stores `field_opening_audit` for its local F0 contract, complete typed graph, necessary order, tested center, recursive parent/return interface, residual audit, evidence, and an inline restorable `state_snapshot`. Recompute its canonical hash and validate the snapshot graph/order/center rather than trusting the certificate shell.
 
 ## 5. Address-generating motion
 
@@ -68,7 +71,7 @@ Expand every eligible legal frontier item one uniform level within budget. Gener
 
 ### Focused Penetration
 
-Accept a focus request from the caller or an explicit standalone target. Select only legal peers, permit several paths and unequal depths, preserve unselected legal branches as Frontier/interfaces, generate deep addresses, and write them back to the panorama. Focused motion cannot skip necessary predecessors.
+Accept a focus request from the caller or an explicit standalone target. Select only legal and ready peers, first prioritizing current parent obligations or active-residual handling; only then use contribution intervals, uncertainty, interaction risk, cost, and evidence value. Permit several paths and unequal depths, preserve unselected legal branches as latent Frontier/interfaces, generate deep addresses, and write them back to the panorama. Focused motion cannot skip necessary predecessors.
 
 ### Minimum structural expansion
 
@@ -81,17 +84,23 @@ The default bounded motion is one Global round followed by one Focus round. Beca
 Keep:
 
 ```text
-S_t = (M_t, Frontier_t, R_t, χ_t)
+S_t = (M_t, ActionFrontier_t, ExpansionFrontier_t^req,
+       ExpansionFrontier_t^latent, Compressed_t, Λ_t, R_t, χ_t)
 ```
 
-- `M_t`: represented and realized/potential address graph;
-- `Frontier_t`: legal potential positions not yet opened or realized;
+- `A_t^cand`: uncalibrated or rejected address candidates;
+- `M_t=A_t^legal`: represented calibrated legal address graph;
+- `ActionFrontier_t`: legal, predecessor-ready positions available to execute;
+- `ExpansionFrontier_t^req`: legal positions the current parent contract requires before closure;
+- `ExpansionFrontier_t^latent`: legal positions that may remain unopened this round;
+- `Compressed_t`: valid, reopenable child-field interfaces;
+- `Λ_t`: latent residual material, distinct from ordinary latent frontier entries;
 - `R_t`: F0-relevant differences not absorbed or legally disposed;
-- `χ_t`: links from residuals to realized, potential, prohibited, or absent addresses.
+- `χ_t`: `bound|candidate|unaddressed` bindings from residual difference records to address ledgers.
 
 A residual may later be absorbed at the next expansion, at a finite deeper expansion, after rebuild, or only after field ascent. Record the absorption motion and version; never delete its history. A legal Frontier is not a residual merely because it is unexpanded.
 
-For provisional closure, a residual-linked potential must be retained in Frontier, have a legal evidence-bound root path with all required predecessors, and have evidence-supported reach `next` or bounded `finite-deep`. `hypothesized` or `unknown` reach remains `[◇,d=?]`: it is a legitimate formation hypothesis but cannot support closure or execution.
+For provisional closure, the required expansion frontier must be empty and no blocking active residual may remain. A latent residual may bind a legal address, candidate address, or no address and still coexist with relative closure. When activated, route it to local absorption, required frontier, address birth, an active residual with `[-]`/`[∅]`, or externalization. A hypothesis remains a candidate without modality and cannot support closure or execution.
 
 ## 7. From address to executable position
 
@@ -101,6 +110,8 @@ An address becomes executable only when:
 - all necessary predecessors are realized or preserved by valid interfaces;
 - permission, safety, and input conditions hold;
 - it is not stale, prohibited, or blocked by active `[∅]` residuals.
+
+Active addresses are induced only from current required expansion, ready action, or active-residual handling scope. A high score alone cannot activate an otherwise latent or structurally illegal address.
 
 The engine returns the induced executable-address sub-poset and Ready wave. It does not call domain tools or claim task completion; the client decides and performs execution.
 

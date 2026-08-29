@@ -14,6 +14,8 @@ from typing import Any
 
 
 ADDRESS_RE = re.compile(r"^[A-Z](?:\d+(?:\.\d+)*)?$")
+ENGINE_VERSION = "0.5-experimental"
+SUPPORTED_ENGINE_VERSIONS = {"0.3-experimental", "0.4-experimental", ENGINE_VERSION}
 MODALS = {"realized", "potential", "prohibited"}
 LIFECYCLES = {"active", "historical", "retired"}
 PREDECESSORS = {"satisfied", "valid-interface", "missing", "disputed"}
@@ -22,6 +24,37 @@ STRUCTURE_STATUSES = {"forming", "tentative", "validated", "invalid"}
 CENTER_STATUSES = {"candidate", "selected", "validated", "disputed", "invalid"}
 REACH_KINDS = {"next", "finite-deep", "unknown", "unreachable"}
 FIELD_OPENING_STATUSES = {"hypothesized", "forming", "validated"}
+FRONTIER_KEYS = {"action", "expansion_required", "expansion_latent", "compressed"}
+RELATION_ROLES = {
+    "dependency",
+    "support",
+    "conflict",
+    "coupling",
+    "source",
+    "structural-condition",
+    "amplifier",
+    "threshold",
+    "trigger",
+    "propagation",
+}
+
+
+def frontier_state(state: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
+    """Return typed frontiers; map legacy unified frontier to latent only."""
+    frontiers = state.get("frontiers")
+    if isinstance(frontiers, dict):
+        return {
+            key: value if isinstance(value, list) else []
+            for key, value in frontiers.items()
+            if key in FRONTIER_KEYS
+        }
+    legacy = state.get("frontier")
+    return {
+        "action": [],
+        "expansion_required": [],
+        "expansion_latent": legacy if isinstance(legacy, list) else [],
+        "compressed": [],
+    }
 
 
 def snapshot_hash(snapshot: dict[str, Any]) -> str | None:
@@ -64,7 +97,7 @@ def child_opening_issues(
     if not isinstance(frontiers, dict):
         issues.append("state_snapshot.frontiers must be an object")
         frontiers = {}
-    for name in ("action", "expansion", "compressed"):
+    for name in ("action", "expansion_required", "expansion_latent", "compressed"):
         if not isinstance(frontiers.get(name), list):
             issues.append(f"state_snapshot.frontiers.{name} must be a list")
     residuals = snapshot.get("residuals")
@@ -256,6 +289,35 @@ def child_opening_issues(
 
 def validate_state(state: dict[str, Any]) -> list[str]:
     errors: list[str] = []
+    engine_version = state.get("engine_version")
+    if engine_version not in SUPPORTED_ENGINE_VERSIONS:
+        errors.append("engine_version is unsupported")
+    if engine_version == ENGINE_VERSION:
+        frontiers_value = state.get("frontiers")
+        if not isinstance(frontiers_value, dict):
+            errors.append("frontiers must be a typed object in engine 0.5")
+        elif set(frontiers_value) != FRONTIER_KEYS:
+            errors.append("frontiers must contain exactly action, expansion_required, expansion_latent, compressed")
+        if "frontier" in state:
+            errors.append("legacy frontier cannot be mixed into engine 0.5 state")
+        candidates = state.get("address_candidates")
+        if not isinstance(candidates, list):
+            errors.append("address_candidates must be a list in engine 0.5")
+            candidates = []
+        candidate_ids: set[str] = set()
+        for index, candidate in enumerate(candidates):
+            label = f"address_candidates[{index}]"
+            candidate_id = candidate.get("candidate_address_id") if isinstance(candidate, dict) else None
+            if not candidate_id or candidate_id in candidate_ids:
+                errors.append(f"{label}.candidate_address_id is missing or duplicated")
+            else:
+                candidate_ids.add(candidate_id)
+            if candidate.get("calibration_status") not in {
+                "hypothesized", "calibrating", "calibrated", "rejected"
+            }:
+                errors.append(f"{label}.calibration_status is invalid")
+            if "modal" in candidate:
+                errors.append(f"{label} must not carry legal-address modal")
     field = state.get("field") or {}
     for key in (
         "field_id",
@@ -283,6 +345,12 @@ def validate_state(state: dict[str, Any]) -> list[str]:
         for item in state.get("evidence") or []
         if isinstance(item, dict) and item.get("id")
     }
+    if engine_version == ENGINE_VERSION:
+        if field.get("formation_confirmation_status") not in {"confirmed", "reused"}:
+            errors.append("field.formation_confirmation_status must be confirmed or reused")
+        confirmation_refs = field.get("formation_confirmation_evidence_refs") or []
+        if not confirmation_refs or not all(ref in evidence_ids for ref in confirmation_refs):
+            errors.append("field.formation_confirmation_evidence_refs must resolve to stored evidence")
     dependency_by_id: dict[str, dict[str, Any]] = {}
     for index, relation in enumerate(state.get("dependency_relations") or []):
         label = f"dependency_relations[{index}]"
@@ -345,6 +413,41 @@ def validate_state(state: dict[str, Any]) -> list[str]:
             errors.append(f"{label}.evidence_refs must resolve to stored evidence")
         opening = address.get("field_opening_audit")
         recursive_address = bool(re.search(r"\d", path))
+        parent_binding = address.get("parent_binding")
+        if recursive_address:
+            expected_parent = roots[-2] if len(roots) > 1 else field.get("f0_lineage")
+            if not isinstance(parent_binding, dict):
+                errors.append(f"{label}.parent_binding is required for a recursive address")
+            else:
+                if parent_binding.get("parent_address") != expected_parent:
+                    errors.append(f"{label}.parent_binding.parent_address is invalid")
+                for key in ("parent_field_id", "required_function", "parent_return"):
+                    if not parent_binding.get(key):
+                        errors.append(f"{label}.parent_binding.{key} is missing")
+        relation_roles = address.get("relation_roles") or []
+        if not isinstance(relation_roles, list) or any(role not in RELATION_ROLES for role in relation_roles):
+            errors.append(f"{label}.relation_roles is invalid")
+        contribution = address.get("contribution_annotation")
+        if contribution is not None:
+            if not isinstance(contribution, dict):
+                errors.append(f"{label}.contribution_annotation must be an object")
+            else:
+                if not contribution.get("decomposition_contract_ref"):
+                    errors.append(f"{label}.contribution_annotation needs a decomposition contract")
+                refs = contribution.get("evidence_refs") or []
+                if not refs or not all(ref in evidence_ids for ref in refs):
+                    errors.append(f"{label}.contribution_annotation.evidence_refs is invalid")
+                for interval_name in ("conditional_interval", "residual_share_interval"):
+                    interval = contribution.get(interval_name)
+                    if interval is None:
+                        continue
+                    if (
+                        not isinstance(interval, list)
+                        or len(interval) != 2
+                        or any(not isinstance(value, (int, float)) for value in interval)
+                        or not 0 <= interval[0] <= interval[1] <= 1
+                    ):
+                        errors.append(f"{label}.contribution_annotation.{interval_name} is invalid")
         if recursive_address and not isinstance(opening, dict):
             errors.append(f"{label}.field_opening_audit is required")
         elif isinstance(opening, dict):
@@ -367,6 +470,11 @@ def validate_state(state: dict[str, Any]) -> list[str]:
         modal = address.get("modal")
         if modal not in MODALS:
             errors.append(f"{label}.modal is invalid")
+        if engine_version == ENGINE_VERSION:
+            if address.get("calibration_status") != "calibrated":
+                errors.append(f"{label}.calibration_status must be calibrated")
+            if modal not in {"realized", "potential"}:
+                errors.append(f"{label} legal address modal must be realized or potential")
         if address.get("lifecycle") not in LIFECYCLES:
             errors.append(f"{label}.lifecycle is invalid")
         predecessor = (address.get("predecessor_state") or {}).get("status")
@@ -383,14 +491,69 @@ def validate_state(state: dict[str, Any]) -> list[str]:
         ):
             errors.append(f"{label} cannot be realized before its child field validates")
 
-    for index, item in enumerate(state.get("frontier") or []):
-        address = address_by_id.get(item.get("address_id"))
-        if not address:
-            errors.append(f"frontier[{index}] references an unknown address")
-        elif address.get("modal") != "potential":
-            errors.append(f"frontier[{index}] must reference a potential address")
+    typed_frontiers = frontier_state(state)
+    expansion_required_ids: set[str] = set()
+    expansion_latent_ids: set[str] = set()
+    for frontier_name in FRONTIER_KEYS:
+        entries = typed_frontiers.get(frontier_name, [])
+        if not isinstance(entries, list):
+            errors.append(f"frontiers.{frontier_name} must be a list")
+            continue
+        seen: set[str] = set()
+        for index, item in enumerate(entries):
+            label = f"frontiers.{frontier_name}[{index}]"
+            if not isinstance(item, dict):
+                errors.append(f"{label} must be an object")
+                continue
+            address_id = item.get("address_id")
+            address = address_by_id.get(address_id)
+            if not address:
+                errors.append(f"{label} references an unknown address")
+            elif frontier_name in {"action", "expansion_required", "expansion_latent"} and address.get("modal") != "potential":
+                errors.append(f"{label} must reference a potential address")
+            elif address.get("lifecycle") != "active":
+                errors.append(f"{label} must reference an active address")
+            if address_id in seen:
+                errors.append(f"{label} duplicates an address in the same frontier")
+            seen.add(address_id)
+            refs = item.get("evidence_refs") or []
+            if engine_version == ENGINE_VERSION and (not refs or not all(ref in evidence_ids for ref in refs)):
+                errors.append(f"{label}.evidence_refs must resolve to stored evidence")
+        if frontier_name == "expansion_required":
+            expansion_required_ids = seen
+        elif frontier_name == "expansion_latent":
+            expansion_latent_ids = seen
+    overlap = expansion_required_ids & expansion_latent_ids
+    if overlap:
+        errors.append("an address cannot be both expansion_required and expansion_latent")
 
     for index, item in enumerate(state.get("residual_links") or []):
+        if engine_version == ENGINE_VERSION:
+            binding = item.get("address_binding")
+            if not isinstance(binding, dict):
+                errors.append(f"residual_links[{index}].address_binding must be an object")
+                continue
+            kind = binding.get("kind")
+            if kind not in {"bound", "candidate", "unaddressed"}:
+                errors.append(f"residual_links[{index}].address_binding.kind is invalid")
+            elif kind == "bound" and binding.get("address_id") not in address_ids:
+                errors.append(f"residual_links[{index}] bound address is unknown")
+            elif kind == "candidate" and binding.get("candidate_address_id") not in candidate_ids:
+                errors.append(f"residual_links[{index}] candidate binding is unknown")
+            if "modal" in item or "address_ref" in item:
+                errors.append(f"residual_links[{index}] must not carry legacy address modality")
+            if item.get("classification") not in {"latent-residual", "active-residual"}:
+                errors.append(f"residual_links[{index}].classification is invalid")
+            if item.get("classification") == "latent-residual" and not item.get(
+                "activation_condition"
+            ):
+                errors.append(f"residual_links[{index}] latent residual needs activation_condition")
+            result = item.get("addressing_result")
+            if result is not None and (
+                not isinstance(result, dict) or result.get("modality") not in {"[-]", "[∅]"}
+            ):
+                errors.append(f"residual_links[{index}].addressing_result is invalid")
+            continue
         modal = item.get("modal")
         address_ref = item.get("address_ref")
         if modal == "no-address" and address_ref is not None:
@@ -429,22 +592,42 @@ def addressability_issues(state: dict[str, Any]) -> list[str]:
         issues.append("minimum-sufficient center is not validated")
     if not isinstance(field.get("formation_revision"), int) or field.get("formation_revision", 0) < 1:
         issues.append("no audited forward field formation exists")
+    if state.get("engine_version") == ENGINE_VERSION and field.get(
+        "formation_confirmation_status"
+    ) not in {"confirmed", "reused"}:
+        issues.append("field formation is not authorized")
     return issues
 
 
 def provisional_closure_issues(state: dict[str, Any]) -> list[str]:
     """Reject fabricated potentials as support for provisional closure."""
     issues = addressability_issues(state)
+    if state.get("engine_version") != ENGINE_VERSION:
+        issues.append("legacy unified frontier cannot establish typed provisional closure")
     addresses = {
         item.get("address_id"): item
         for item in state.get("addresses") or []
         if isinstance(item, dict) and item.get("address_id")
     }
+    frontiers = frontier_state(state)
+    if frontiers.get("expansion_required"):
+        issues.append("required expansion frontier is not empty")
     frontier_ids = {
-        item.get("address_id") for item in state.get("frontier") or []
+        item.get("address_id")
+        for name in ("expansion_required", "expansion_latent")
+        for item in frontiers.get(name, [])
+        if isinstance(item, dict)
     }
     for index, residual in enumerate(state.get("residual_links") or []):
         label = f"residual_links[{index}]"
+        if state.get("engine_version") == ENGINE_VERSION:
+            if residual.get("classification") == "active-residual" and residual.get(
+                "blocking", True
+            ):
+                issues.append(f"{label} is a blocking active residual")
+            # Latent differences are allowed at relative closure regardless of
+            # whether they bind a legal address, a candidate, or no address.
+            continue
         if residual.get("modal") != "potential":
             issues.append(f"{label} is not potential")
             continue
@@ -466,7 +649,7 @@ def provisional_closure_issues(state: dict[str, Any]) -> list[str]:
         if not address or address.get("modal") != "potential" or address.get("lifecycle") != "active":
             issues.append(f"{label} does not reference an active potential address")
         if address_id not in frontier_ids:
-            issues.append(f"{label} address is not retained in the frontier")
+            issues.append(f"{label} address is not retained in an expansion frontier")
         if (
             address
             and re.search(r"\d", str(address.get("display_path", "")))
@@ -492,8 +675,45 @@ def apply_motion(state: dict[str, Any], motion: dict[str, Any]) -> dict[str, Any
     result = copy.deepcopy(state)
     result.setdefault("intake", []).extend(copy.deepcopy(motion.get("intake_births") or []))
     result.setdefault("objects", []).extend(copy.deepcopy(motion.get("object_births") or []))
+    result.setdefault("address_candidates", []).extend(
+        copy.deepcopy(motion.get("candidate_births") or [])
+    )
+    resolutions = motion.get("candidate_resolutions") or []
+    if not isinstance(resolutions, list):
+        raise ValueError("candidate_resolutions must be a list")
+    candidate_map = {
+        item.get("candidate_address_id"): item
+        for item in result.get("address_candidates") or []
+        if isinstance(item, dict)
+    }
+    for resolution in resolutions:
+        candidate = candidate_map.get(resolution.get("candidate_address_id"))
+        if candidate is None:
+            raise ValueError("candidate resolution references an unknown candidate")
+        status = resolution.get("calibration_status")
+        if status not in {"calibrated", "rejected"}:
+            raise ValueError("candidate resolution must be calibrated or rejected")
+        candidate.update(copy.deepcopy(resolution))
     result.setdefault("addresses", []).extend(copy.deepcopy(motion.get("address_births") or []))
-    result.setdefault("frontier", []).extend(copy.deepcopy(motion.get("frontier_births") or []))
+    frontier_births = motion.get("frontier_births") or {}
+    if isinstance(frontier_births, list):
+        frontier_births = {"expansion_latent": frontier_births}
+    if not isinstance(frontier_births, dict) or set(frontier_births) - FRONTIER_KEYS:
+        raise ValueError("frontier_births must be a typed frontier object")
+    result_frontiers = result.setdefault(
+        "frontiers",
+        {"action": [], "expansion_required": [], "expansion_latent": [], "compressed": []},
+    )
+    for name in FRONTIER_KEYS:
+        result_frontiers.setdefault(name, []).extend(copy.deepcopy(frontier_births.get(name) or []))
+    frontier_removals = motion.get("frontier_removals") or {}
+    if not isinstance(frontier_removals, dict) or set(frontier_removals) - FRONTIER_KEYS:
+        raise ValueError("frontier_removals must be a typed frontier object")
+    for name, ids in frontier_removals.items():
+        removal_ids = set(ids or [])
+        result_frontiers[name] = [
+            item for item in result_frontiers.get(name, []) if item.get("address_id") not in removal_ids
+        ]
     result.setdefault("residual_links", []).extend(copy.deepcopy(motion.get("residual_births") or []))
 
     retirements = set(motion.get("retirements") or [])
@@ -580,13 +800,18 @@ def self_test() -> None:
             ],
         },
         "recursive_structure_status": "validated",
-        "frontiers": {"action": [], "expansion": [], "compressed": []},
+        "frontiers": {
+            "action": [],
+            "expansion_required": [],
+            "expansion_latent": [],
+            "compressed": [],
+        },
         "residuals": [],
         "residual_audit": {"status": "performed"},
         "return_interface": {"status": "valid", "parent_address": "F0:B1"},
     }
     state = {
-        "engine_version": "0.3-experimental",
+        "engine_version": ENGINE_VERSION,
         "revision": 1,
         "field": {
             "field_id": "F-demo",
@@ -597,6 +822,8 @@ def self_test() -> None:
             "order_status": "validated",
             "center_status": "validated",
             "formation_revision": 1,
+            "formation_confirmation_status": "confirmed",
+            "formation_confirmation_evidence_refs": ["E1"],
         },
         "intake": [],
         "objects": [{"object_id": "O1"}],
@@ -628,7 +855,13 @@ def self_test() -> None:
             },
         ],
         "addresses": [],
-        "frontier": [],
+        "address_candidates": [],
+        "frontiers": {
+            "action": [],
+            "expansion_required": [],
+            "expansion_latent": [],
+            "compressed": [],
+        },
         "residual_links": [],
         "history": [],
     }
@@ -640,10 +873,18 @@ def self_test() -> None:
                 "address_id": "A1",
                 "object_id": "O1",
                 "display_path": "B1.2",
+                "calibration_status": "calibrated",
                 "modal": "potential",
                 "lifecycle": "active",
                 "root_path_nodes": ["F0", "F0:B", "F0:B1", "F0:B1.2"],
                 "root_path_relation_ids": ["D1", "D2", "D3"],
+                "parent_binding": {
+                    "parent_field_id": "F-demo",
+                    "parent_address": "F0:B1",
+                    "required_function": "return a validated child interface",
+                    "parent_return": "F0:B1.2 -> F0:B successor",
+                },
+                "relation_roles": ["dependency"],
                 "predecessor_state": {"status": "satisfied", "refs": ["D1", "D2", "D3"]},
                 "evidence_refs": ["E1"],
                 "field_opening_status": "validated",
@@ -665,7 +906,9 @@ def self_test() -> None:
                 },
             }
         ],
-        "frontier_births": [{"address_id": "A1"}],
+        "frontier_births": {
+            "expansion_latent": [{"address_id": "A1", "evidence_refs": ["E1"]}]
+        },
     }
     updated = apply_motion(state, motion)
     assert updated["revision"] == 2
@@ -700,17 +943,31 @@ def self_test() -> None:
     broken = copy.deepcopy(updated)
     broken["addresses"][0]["root_path_relation_ids"] = ["D3", "D2", "D1"]
     assert any("reversed" in error for error in validate_state(broken))
+    assert provisional_closure_issues(updated) == []
+    required_open = copy.deepcopy(updated)
+    required_open["frontiers"]["expansion_required"] = required_open["frontiers"][
+        "expansion_latent"
+    ]
+    required_open["frontiers"]["expansion_latent"] = []
+    assert any("required expansion frontier" in issue for issue in provisional_closure_issues(required_open))
     hypothesis = copy.deepcopy(updated)
-    hypothesis["residual_links"] = [
+    hypothesis["address_candidates"] = [
         {
-            "modal": "potential",
-            "address_ref": "A1",
-            "relation_kind": "hypothesized",
-            "gate_status": "unverified",
-            "reach": {"kind": "unknown", "estimated_expansions": None, "evidence_refs": []},
+            "candidate_address_id": "CAND-1",
+            "calibration_status": "hypothesized",
+            "proposed_structural_role": "possible future branch",
         }
     ]
-    assert provisional_closure_issues(hypothesis)
+    hypothesis["residual_links"] = [
+        {
+            "classification": "latent-residual",
+            "description": "possible future mismatch",
+            "activation_condition": "new evidence arrives",
+            "address_binding": {"kind": "candidate", "candidate_address_id": "CAND-1"},
+        }
+    ]
+    assert validate_state(hypothesis) == []
+    assert provisional_closure_issues(hypothesis) == []
     print("Address Engine self-test passed")
 
 

@@ -115,6 +115,8 @@ class PublicExampleTest(unittest.TestCase):
                 "F0_CONFIRMATION_REQUIRED",
             )
 
+            checkpoint = self.run_helper("render-checkpoint", state_path)
+            self.assertIn("F0", checkpoint.stdout)
             self.run_helper("f0-confirm", state_path, "--by", "example:user")
             confirmed = self.load(state_path)
             self.assertEqual(

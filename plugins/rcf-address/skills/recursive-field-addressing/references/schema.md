@@ -3,7 +3,7 @@
 Use this compact JSON-compatible shape for persisted or exchanged engine state. Do not invent missing semantic evidence merely to satisfy the shape.
 
 ```yaml
-engine_version: "0.3-experimental"
+engine_version: "0.4-experimental"
 revision: 1
 
 field:
@@ -15,6 +15,8 @@ field:
   order_status: "forming | tentative | validated | invalid"
   center_status: "candidate | selected | validated | disputed | invalid"
   formation_revision: 1
+  formation_confirmation_status: "confirmed | reused"
+  formation_confirmation_evidence_refs: ["evidence identity"]
 
 evidence:
   - id: "evidence identity"
@@ -53,13 +55,22 @@ objects:
     provenance: "source reference"
     evidence_status: "explicit | inferred | hypothesized | disputed"
 
+address_candidates:
+  - candidate_address_id: "candidate identity"
+    calibration_status: "hypothesized | calibrating | calibrated | rejected"
+    proposed_structural_role: "role hypothesis"
+    evidence_refs: []
+    counterevidence_refs: []
+    resulting_address_id: null
+
 addresses:
   - address_id: "version-specific-address-identity"
     object_id: "stable-object-identity"
     display_path: "B1.2"
     path_tokens: ["B", "1", "2"]
     role: "field-relative identity"
-    modal: "realized | potential | prohibited"
+    calibration_status: "calibrated"
+    modal: "realized | potential"
     lifecycle: "active | historical | retired"
     root_path_nodes: ["F0", "F0:B", "F0:B1", "F0:B1.2"]
     root_path_relation_ids: ["D1", "D2", "D3"]
@@ -67,6 +78,13 @@ addresses:
       status: "satisfied | valid-interface | missing | disputed"
       refs: []
     parent_binding: null
+    # Recursive addresses require:
+    # parent_binding: {parent_field_id, parent_address, required_function, parent_return}
+    relation_roles: ["dependency"]
+    contribution_annotation: null
+    # Optional only with a decomposition contract and evidence:
+    # {decomposition_contract_ref, conditional_interval: [0.0, 0.2],
+    #  residual_share_interval: [0.0, 0.1], evidence_refs: [...]}
     interface_contract_ref: null
     reopen_ref: null
     evidence_refs: ["evidence identity"]
@@ -89,23 +107,30 @@ addresses:
         order: {status: "validated", nodes: ["F0"], relations: []}
         center: {status: "validated", selected: "K1", candidates: [{id: "K1", members: ["F0"], minimality_status: "validated"}]}
         recursive_structure_status: "validated"
-        frontiers: {action: [], expansion: [], compressed: []}
+        frontiers: {action: [], expansion_required: [], expansion_latent: [], compressed: []}
         residuals: []
         residual_audit: {status: "performed"}
         return_interface: {status: "valid", parent_address: "F0:B1"}
       state_hash: "canonical sha256 of state_snapshot"
       evidence_refs: ["evidence identity"]
 
-frontier:
-  - address_id: "potential-address-id"
-    reach: "next | finite-deep | unknown"
-    compression_state: "compressed | locked | deferred"
+frontiers:
+  action:
+    - {address_id: "potential-address-id", evidence_refs: ["evidence identity"]}
+  expansion_required: []
+  expansion_latent:
+    - {address_id: "potential-address-id", evidence_refs: ["evidence identity"]}
+  compressed: []
 
 residual_links:
   - residual_id: "residual identity"
-    address_ref: null
-    modal: "realized | potential | prohibited | no-address"
-    relation_kind: "frontier | hypothesized"
+    classification: "latent-residual | active-residual"
+    address_binding:
+      kind: "bound | candidate | unaddressed"
+      address_id: null
+      candidate_address_id: null
+    activation_condition: null
+    addressing_result: null  # when present, modality is [-] or [∅]
     gate_status: "legal | unverified | illegal"
     reach:
       kind: "next | finite-deep | unknown | unreachable"
@@ -126,12 +151,16 @@ history:
 Rules:
 
 - `[∅]` uses `modal: no-address` and `address_ref: null`; never fabricate an address record.
-- `[◇]` lives in `frontier`; an unresolved residual may also point to it until absorption is verified.
+- `[◇]` may live in a typed action or expansion frontier only after calibration. A candidate carries calibration state, not modality. A residual may bind the address, but the residual itself is not `[◇]`.
+- `expansion_required` records current parent-field obligations; provisional closure requires it to be empty. `expansion_latent` may remain non-empty and is not automatically a latent residual.
+- Engine 0.3 unified `frontier` states remain readable for migration, but cannot establish typed provisional closure and must not be mixed with 0.4 `frontiers`.
 - A realized address requires a stable field and `satisfied` or `valid-interface` predecessors.
+- Engine 0.4 address motion requires an evidence-bound `confirmed` or `reused` field-formation authorization.
 - `MAP`, `GLOBAL`, `FOCUS`, and `REALIZE` require stable contract plus validated graph, order, center, and a positive audited `formation_revision`.
 - Every adjacent root-path step must be covered in forward direction by a valid required dependency relation whose evidence resolves in `evidence`.
-- Every numeric recursive node requires `field_opening_status` and `field_opening_audit`. `hypothesized`/`forming` remain potential Frontier hypotheses and cannot support closure, execution, or realization. `validated` requires an evidence-bound inline `state_snapshot`; validators recompute its canonical hash and check the child graph, order, center, residual audit, and return binding.
-- A potential supports provisional closure only when `relation_kind=frontier`, `gate_status=legal`, reach is evidence-supported `next` or bounded `finite-deep`, and the active address remains in Frontier. `hypothesized` or `unknown` is `[◇,d=?]` and remains open.
+- Every proposed numeric recursive node starts in `address_candidates`. `hypothesized`/`forming` carry no legal-address modality and cannot support closure, execution, or realization. `validated` creates a legal `[◇]` address and requires an evidence-bound inline `state_snapshot`; validators recompute its canonical hash and check the child graph, order, center, residual audit, and return binding.
+- Relative closure requires `expansion_required` to be empty and blocking active residuals to be absent. Latent residuals may remain with `bound`, `candidate`, or `unaddressed` bindings.
+- Conditional contribution annotations never legalize an address. They require a decomposition contract, evidence, and bounded intervals; serial necessity, interactions, thresholds, and causal amplification stay separate.
 - `display_path` is a view; exchange `path_tokens`, typed root-path edges, identities, and versions.
 - Preserve retired addresses and old revisions as lineage.
 

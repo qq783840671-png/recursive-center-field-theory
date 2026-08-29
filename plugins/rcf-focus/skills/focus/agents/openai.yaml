@@ -1,0 +1,7 @@
+interface:
+  display_name: "Focus"
+  short_description: "Construct and revise live fields"
+  default_prompt: "Use $focus to maintain the live field, act on one necessary frontier, and revise closure when evidence changes."
+
+policy:
+  allow_implicit_invocation: false

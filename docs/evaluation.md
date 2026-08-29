@@ -1,6 +1,6 @@
 # Evaluation Protocol
 
-**Artifact:** source-available `v0.1.0-alpha.3` · **Theory:** `v0.5-draft` · **State schema:** `2.2`
+**Artifact:** source-available `v0.4.0-alpha.1` · **Root theory:** `v0.12` · **Dynamics:** `v0.18` · **Runtime:** constructive live loop plus historical sidecar, two-stage, and schema `2.2` compatibility
 
 This document turns the engineering claims around Focus into falsifiable studies. It does not treat conceptual coherence, a working Skill, GitHub attention, or a single successful demonstration as evidence of performance.
 
@@ -241,7 +241,9 @@ If the wrong-structure control sharply degrades performance or blocks necessary 
 To test the proposed *combination* rather than a branded package, remove one component at a time:
 
 - no explicit field contract;
-- inferred F0 without the explicit user-confirmation checkpoint;
+- parent task without Focus;
+- parent task with the historical post-execution sidecar;
+- parent task with constructive Focus under the same total budget;
 - one fixed center instead of candidate centers;
 - general relation graph without the necessary partial-order projection;
 - no distinction among action, expansion, and compressed frontiers;
@@ -249,12 +251,12 @@ To test the proposed *combination* rather than a branded package, remove one com
 - Focus only, without Global Expansion;
 - lossy summary instead of a reopenable compression contract;
 - no modal address states;
-- no Execute/Audit evidence gate;
+- no observation-to-realized-node evidence gate;
 - no invalidation propagation;
 - no residual-to-address relation or absorption history;
 - no versioned drift audit.
 - eager loading of the full protocol and schema versus progressive loading;
-- fixed 2+2 motion for every task versus the standard profile plus the decision-invariance light stop.
+- constructive revision and version preservation versus a free-form after-action summary.
 
 Pairwise combinations with HTN, workflow execution, GraphRAG, and ordinary action masks are also important. If a simpler combination reproduces the result, the claim should be narrowed accordingly.
 
