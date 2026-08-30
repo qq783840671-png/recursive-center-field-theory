@@ -5,6 +5,8 @@ description: "Use only for `$recursive-field-addressing`, Address／动态寻址
 
 # Address Engine
 
+Current semantic binding: Address Skill v0.6 with persisted-state engine `0.5-experimental`.
+
 ## Quick start
 
 Accept `Use Address Engine: map these changing concepts into traceable identities and addresses.` Form/confirm the field in Standalone mode; reuse the caller's valid field in Client mode. Return the address result and one decision, never external task completion.
@@ -23,6 +25,8 @@ Inputs may remain external, prohibited, or no-address. Address ends at an addres
 - **Client:** reuse the supplied field/order/motion/residual state; reconfirm only if it is missing, stale, unstable, or contradictory.
 
 Read [references/engine.md](references/engine.md) only for disputed identity, complex motion, revision/ascent, or raw audit. Read [references/schema.md](references/schema.md) and use [scripts/address_engine.py](scripts/address_engine.py) only for persisted-state work. A normal Client call loads neither.
+
+The model owns semantic field recovery and evidence judgment. The engine validates recorded identities, candidates, frontiers, residual bindings, address motion, and closure gates; an engine-valid state is structural evidence, not proof that the chosen field or domain claims are true.
 
 ## Engine loop
 

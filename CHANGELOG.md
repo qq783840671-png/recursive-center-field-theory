@@ -2,6 +2,21 @@
 
 All notable public-candidate changes are recorded here. Theory, Skill, plugin, release, and Git versions remain separate clocks; see [`release-manifest.json`](release-manifest.json) for their compatibility matrix.
 
+## [0.4.0-alpha.2] - 2026-08-30
+
+### Changed
+
+- Bound Address Skill v0.6 to the existing `0.5-experimental` persisted-state engine and synchronized the public Schema from the stale 0.4 header.
+- Added direct behavior tests for Address candidate/address separation and the existing engine self-test.
+- Advanced Distill to v0.2 with an optional `distill-ledger-1.0` helper that validates declared `ADD / REFINE / REPLACE / CONTRADICT / NOOP` plans and records applied or deferred outcomes.
+- Kept semantic extraction, canonical routing, comparison, and the actual minimum knowledge edit under model responsibility; the ledger does not infer meaning or prove truth.
+
+### Evidence boundary
+
+- Tests validate recorded state and audit invariants, including rejection of summary-to-verified promotion and incomplete finalization.
+- No comparative advantage, automatic semantic equivalence, or automatic truth discovery is claimed.
+- This remains a local candidate until the GitHub repository is created and pushed.
+
 ## [0.4.0-alpha.1] - 2026-08-29
 
 ### Changed

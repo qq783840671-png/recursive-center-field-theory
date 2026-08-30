@@ -24,10 +24,13 @@ jobs:
           python-version: "3.11"
 
       - name: Compile packaged helpers
-        run: python -m py_compile plugins/rcf-focus/skills/recursive-center-field-dynamics/scripts/focus_runtime.py plugins/rcf-focus/skills/recursive-center-field-dynamics/scripts/field_state.py plugins/rcf-address/skills/recursive-field-addressing/scripts/address_engine.py
+        run: python -m py_compile plugins/rcf-focus/skills/recursive-center-field-dynamics/scripts/focus_runtime.py plugins/rcf-focus/skills/recursive-center-field-dynamics/scripts/field_state.py plugins/rcf-address/skills/recursive-field-addressing/scripts/address_engine.py plugins/rcf-distill/skills/distill-conversation-ideas/scripts/distill_ledger.py
 
       - name: Run Address engine self-test
         run: python plugins/rcf-address/skills/recursive-field-addressing/scripts/address_engine.py self-test
+
+      - name: Run Distill ledger self-test
+        run: python plugins/rcf-distill/skills/distill-conversation-ideas/scripts/distill_ledger.py self-test
 
       - name: Run public example tests
         run: python -m unittest discover -s tests -p "test_*.py" -v

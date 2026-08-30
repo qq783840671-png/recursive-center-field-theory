@@ -50,8 +50,9 @@ For implementation changes, include tests for the changed behavior and preserve 
 ## Validation
 
 ```bash
-python -m py_compile plugins/rcf-focus/skills/recursive-center-field-dynamics/scripts/focus_runtime.py plugins/rcf-focus/skills/recursive-center-field-dynamics/scripts/field_state.py plugins/rcf-address/skills/recursive-field-addressing/scripts/address_engine.py
+python -m py_compile plugins/rcf-focus/skills/recursive-center-field-dynamics/scripts/focus_runtime.py plugins/rcf-focus/skills/recursive-center-field-dynamics/scripts/field_state.py plugins/rcf-address/skills/recursive-field-addressing/scripts/address_engine.py plugins/rcf-distill/skills/distill-conversation-ideas/scripts/distill_ledger.py
 python plugins/rcf-address/skills/recursive-field-addressing/scripts/address_engine.py self-test
+python plugins/rcf-distill/skills/distill-conversation-ideas/scripts/distill_ledger.py self-test
 python -m unittest discover -s tests -p "test_*.py" -v
 python -m unittest discover -s plugins/rcf-focus/skills/recursive-center-field-dynamics/tests -p "test_*.py" -v
 ```

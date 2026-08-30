@@ -1,6 +1,6 @@
 # References and Citation Boundaries
 
-**Artifact:** source-available `v0.4.0-alpha.1` · **Root theory:** `v0.13` · **Dynamics:** `v0.18` · **Multi-center specification:** `v0.7-draft`
+**Artifact:** source-available `v0.4.0-alpha.2` · **Root theory:** `v0.13` · **Dynamics:** `v0.18` · **Multi-center specification:** `v0.7-draft`
 
 This is a consolidated reading and citation map for the public draft. It records sources already used in the canonical theory and comparison documents. It is not a systematic literature review, patent search, or proof of novelty.
 

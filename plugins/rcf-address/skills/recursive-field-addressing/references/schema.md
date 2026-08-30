@@ -3,7 +3,7 @@
 Use this compact JSON-compatible shape for persisted or exchanged engine state. Do not invent missing semantic evidence merely to satisfy the shape.
 
 ```yaml
-engine_version: "0.4-experimental"
+engine_version: "0.5-experimental"
 revision: 1
 
 field:
@@ -153,9 +153,9 @@ Rules:
 - `[∅]` uses `modal: no-address` and `address_ref: null`; never fabricate an address record.
 - `[◇]` may live in a typed action or expansion frontier only after calibration. A candidate carries calibration state, not modality. A residual may bind the address, but the residual itself is not `[◇]`.
 - `expansion_required` records current parent-field obligations; provisional closure requires it to be empty. `expansion_latent` may remain non-empty and is not automatically a latent residual.
-- Engine 0.3 unified `frontier` states remain readable for migration, but cannot establish typed provisional closure and must not be mixed with 0.4 `frontiers`.
+- Engine 0.3 unified `frontier` states and 0.4 states remain readable for migration, but only 0.5 states can establish the current candidate／residual partition and typed provisional closure.
 - A realized address requires a stable field and `satisfied` or `valid-interface` predecessors.
-- Engine 0.4 address motion requires an evidence-bound `confirmed` or `reused` field-formation authorization.
+- Engine 0.5 address motion requires an evidence-bound `confirmed` or `reused` field-formation authorization.
 - `MAP`, `GLOBAL`, `FOCUS`, and `REALIZE` require stable contract plus validated graph, order, center, and a positive audited `formation_revision`.
 - Every adjacent root-path step must be covered in forward direction by a valid required dependency relation whose evidence resolves in `evidence`.
 - Every proposed numeric recursive node starts in `address_candidates`. `hypothesized`/`forming` carry no legal-address modality and cannot support closure, execution, or realization. `validated` creates a legal `[◇]` address and requires an evidence-bound inline `state_snapshot`; validators recompute its canonical hash and check the child graph, order, center, residual audit, and return binding.

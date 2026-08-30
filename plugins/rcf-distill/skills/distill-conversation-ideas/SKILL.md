@@ -5,6 +5,8 @@ description: "Use when the user says 沉淀／沉淀一下 or asks to preserve i
 
 # Distill
 
+Current semantic binding: Distill Skill v0.2 with optional audit ledger `distill-ledger-1.0`.
+
 ## Quick start
 
 Accept `Use Distill: preserve the durable decisions and unresolved questions from this conversation.` Locate the canonical project destination, make the minimum safe merge, then report what was retained, merged, revised, or left uncertain. Ask for a destination only when no unambiguous project route exists.
@@ -14,6 +16,8 @@ Accept `Use Distill: preserve the durable decisions and unresolved questions fro
 Turn conversation into the minimum sufficient knowledge future work must inherit. Preserve the durable center, dependencies, evidence boundaries, provenance, and unresolved edges; discard conversational noise.
 
 Distill owns preservation intent and the canonical knowledge destination. It does not execute the original domain task. Use ordinary semantic relations by default; delegate to Address only when field-relative identity or migration materially affects the merge.
+
+The model owns semantic extraction, comparison, and the actual minimum edit. For persisted, compacted, disputed, or high-risk merges, read [references/merge-contract.md](references/merge-contract.md) and use [scripts/distill_ledger.py](scripts/distill_ledger.py) to validate the proposed classifications and preserve an append-only merge audit. The ledger cannot decide meaning or edit the destination by itself.
 
 An explicit `沉淀` request authorizes this workflow. Do not add an F0 checkpoint unless scope, destination, or a high-risk target would materially change the write.
 
@@ -31,10 +35,10 @@ The center is not a frequency list. Retain only material that changes future rea
 2. **Extract before loading the destination.** Convert the source once into a small candidate set: durable center, atomic decisions/ideas, dependencies, evidence boundaries, conflicts, residuals, and only decision-linked next actions. Drop greetings, coordination, generic explanation, repetition, abandoned scaffolding, and raw process logs.
 3. **Route narrowly.** Use an explicit file first, then an established inheritance router, then a clearly canonical project-memory file. Search filenames/headings before opening large files. Never scan unrelated directories or place project knowledge in the Skill folder.
 4. **Read only what governs the merge.** Read the router plus the target schema and relevant topic/neighbor sections. Read the whole destination only when its structure, cross-file uniqueness, or duplicate risk cannot otherwise be verified.
-5. **Normalize candidates.** Record only supported fields: idea/decision, why it matters, status, basis, relations, and material open edge.
-6. **Compare semantically.** Classify each candidate as `ADD`, `REFINE`, `REPLACE`, `CONTRADICT`, or `NOOP`; do not append wording variants of an existing idea.
+5. **Normalize candidates.** Record only supported fields: idea/decision, why it matters, status, basis, relations, material open edge, and a stable semantic key for persisted audits.
+6. **Compare semantically.** Classify each candidate as `ADD`, `REFINE`, `REPLACE`, `CONTRADICT`, or `NOOP`; do not append wording variants of an existing idea. A non-`ADD` outcome identifies the canonical target it compares against.
 7. **Merge minimally.** Keep one semantic idea in one canonical main file. Preserve meaningful revision relations; never blend conflict into false consensus or overwrite source evidence.
-8. **Audit.** Re-read the changed section and verify claim status, basis, retained requirements/negative results, duplicate handling, route correctness, and minimal file scope.
+8. **Audit.** Re-read the changed section and verify claim status, basis, retained requirements/negative results, duplicate handling, route correctness, and minimal file scope. When using the ledger, finalize only after every write-bearing candidate is applied or explicitly deferred.
 
 If no durable candidate survives, write nothing and report `NO_DURABLE_UPDATE`. If no canonical destination can be resolved, show the compact candidate preview and ask one concise path question. For a thesis, final manuscript, submission file, core specification, or similarly high-risk target, present the proposed patch and obtain confirmation before writing.
 

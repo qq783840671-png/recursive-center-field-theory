@@ -9,3 +9,9 @@
 ```
 
 它不会把推断伪装成用户决定，也不会为了整理得漂亮而抹去冲突和未决问题。参见[最小示例](../../examples/distill/README.md)。
+
+Distill v0.2 还提供可选的 `distill-ledger-1.0` 审计助手，用于持久化、压缩来源、争议或高风险合并。助手只验证模型声明的分类计划并记录应用／延后结果，不自行判断语义或改写母稿。
+
+```bash
+python plugins/rcf-distill/skills/distill-conversation-ideas/scripts/distill_ledger.py self-test
+```

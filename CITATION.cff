@@ -2,8 +2,8 @@ cff-version: 1.2.0
 message: "If you use this theory, protocol, or Skill, please cite this repository."
 title: "Recursive Partial-Order Multi-Center Dynamic Field Theory"
 type: software
-version: "0.4.0-alpha.1"
-date-released: 2026-08-29
+version: "0.4.0-alpha.2"
+date-released: 2026-08-30
 license: CC-BY-NC-4.0
 authors:
   - name: "qq783840671-png"

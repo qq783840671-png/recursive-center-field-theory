@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "release_version": "0.4.0-alpha.1",
-  "system_snapshot": "2026.08.29-rcf.1",
+  "release_version": "0.4.0-alpha.2",
+  "system_snapshot": "2026.08.30-rcf.1",
   "status": "local-candidate-not-uploaded",
   "components": {
     "root_theory": "0.13",
@@ -12,11 +12,14 @@
     "focus_skill": "0.18",
     "focus_state": "focus-constructive-2.0",
     "legacy_focus_state": "focus-two-stage-1.1",
+    "address_skill": "0.6",
     "address_engine": "0.5",
+    "distill_skill": "0.2",
+    "distill_state": "distill-ledger-1.0",
     "plugins": {
-      "rcf-focus": "0.4.0-alpha.1",
-      "rcf-address": "0.4.0-alpha.1",
-      "rcf-distill": "0.4.0-alpha.1"
+      "rcf-focus": "0.4.0-alpha.2",
+      "rcf-address": "0.4.0-alpha.2",
+      "rcf-distill": "0.4.0-alpha.2"
     }
   },
   "compatibility": {

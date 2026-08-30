@@ -1,6 +1,6 @@
 # Evaluation Protocol
 
-**Artifact:** source-available `v0.4.0-alpha.1` · **Root theory:** `v0.12` · **Dynamics:** `v0.18` · **Runtime:** constructive live loop plus historical sidecar, two-stage, and schema `2.2` compatibility
+**Artifact:** source-available `v0.4.0-alpha.2` · **Root theory:** `v0.12` · **Dynamics:** `v0.18` · **Runtime:** constructive live loop plus historical sidecar, two-stage, and schema `2.2` compatibility
 
 This document turns the engineering claims around Focus into falsifiable studies. It does not treat conceptual coherence, a working Skill, GitHub attention, or a single successful demonstration as evidence of performance.
 

@@ -1,6 +1,6 @@
-# v0.4.0-alpha.1 发布范围与证据边界
+# v0.4.0-alpha.2 发布范围与证据边界
 
-> 状态：本地发布候选，尚未上传。系统快照：`2026.08.29-rcf.1`。日期：2026-08-29。
+> 状态：本地发布候选，尚未上传。系统快照：`2026.08.30-rcf.1`。日期：2026-08-30。
 
 ## 权威顺序
 
@@ -34,6 +34,8 @@
 | 差异分型、作用域评估与必要依赖失效 | 已实现 | `ingest-delta／assess-impact`、测试 |
 | 闭合证书失效、不可变版本与分支 | 已实现 | `field_closure_versions／version_branches`、测试 |
 | 候选／合法／已实现地址分层 | 已实现 | Sidecar、历史runtime、Address engine、测试 |
+| Address v0.6 身份／候选／前沿／剩余／闭合审计 | 已实现 | `address_engine.py` 0.5、Schema、行为测试 |
+| Distill v0.2 分类计划与追加式合并审计 | 已实现子集 | Skill、`distill_ledger.py`、行为测试；语义判断仍由模型负责 |
 | 历史sidecar与`ProjectionCertificate／FocusReturn` | 兼容子集 | 历史runtime、说明、测试 |
 | `Fold／Unwind` 和父子接口重开 | 已实现子集 | 构造型runtime、测试 |
 | 选中中心闭合／完整场闭合分离 | 已实现 | Runtime、测试 |

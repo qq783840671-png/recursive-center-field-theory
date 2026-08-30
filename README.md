@@ -1,6 +1,6 @@
 # Recursive Partial-Order Multi-Center Dynamic Field Theory
 
-[简体中文](README.zh-CN.md) · local release candidate `v0.4.0-alpha.1` · system snapshot `2026.08.29-rcf.1` · not uploaded · personal non-commercial sharing
+[简体中文](README.zh-CN.md) · local release candidate `v0.4.0-alpha.2` · system snapshot `2026.08.30-rcf.1` · not uploaded · personal non-commercial sharing
 
 > Focus participates while Codex performs the parent task: it forms one current projection, drives a necessary frontier, revises obsolete closure when evidence changes, and preserves version lineage.
 
@@ -32,6 +32,8 @@ In short, `P_t^latent` means “the position is known; defer it,” while `Λ_t`
 - **RCF Focus** maintains a live task field through `FORM → DRIVE → REVISE → FOLD`, changes the next action when a structural difference exists, invalidates obsolete closure, and preserves versions and branches.
 - **RCF Address** generates, registers, queries, and audits field-relative, versioned, reopenable structural addresses.
 - **RCF Distill** conservatively merges durable claims, decisions, conflicts, residuals, and provenance into one canonical knowledge file.
+
+Address v0.6 is backed by the `0.5-experimental` persisted-state engine. Distill v0.2 adds an optional `distill-ledger-1.0` audit helper for persisted, compacted, disputed, or high-risk merges; the model still owns semantic comparison and the actual minimum edit.
 
 The Focus plugin also packages the `$focus` invocation alias. All three plugins contain local Skills and scripts only; they add no connector, hosted service, MCP server, or authentication dependency.
 

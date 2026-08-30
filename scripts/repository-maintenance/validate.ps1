@@ -31,6 +31,8 @@ $required = @(
     'plugins/rcf-address/skills/recursive-field-addressing/scripts/address_engine.py',
     'plugins/rcf-distill/.codex-plugin/plugin.json',
     'plugins/rcf-distill/skills/distill-conversation-ideas/SKILL.md',
+    'plugins/rcf-distill/skills/distill-conversation-ideas/references/merge-contract.md',
+    'plugins/rcf-distill/skills/distill-conversation-ideas/scripts/distill_ledger.py',
     'docs/methodology/README.md',
     'docs/spec',
     'docs/release-scope.md',
@@ -44,10 +46,12 @@ $required = @(
 $missing = @($required | Where-Object { -not (Test-Path -LiteralPath (Join-Path $repoRoot $_)) })
 if ($missing.Count -gt 0) { throw ('Missing required files: ' + ($missing -join ', ')) }
 
-& python -m py_compile 'plugins/rcf-focus/skills/recursive-center-field-dynamics/scripts/focus_runtime.py' 'plugins/rcf-focus/skills/recursive-center-field-dynamics/scripts/field_state.py' 'plugins/rcf-address/skills/recursive-field-addressing/scripts/address_engine.py'
+& python -m py_compile 'plugins/rcf-focus/skills/recursive-center-field-dynamics/scripts/focus_runtime.py' 'plugins/rcf-focus/skills/recursive-center-field-dynamics/scripts/field_state.py' 'plugins/rcf-address/skills/recursive-field-addressing/scripts/address_engine.py' 'plugins/rcf-distill/skills/distill-conversation-ideas/scripts/distill_ledger.py'
 if ($LASTEXITCODE -ne 0) { throw 'Python compile check failed.' }
 & python 'plugins/rcf-address/skills/recursive-field-addressing/scripts/address_engine.py' self-test
 if ($LASTEXITCODE -ne 0) { throw 'Address engine self-test failed.' }
+& python 'plugins/rcf-distill/skills/distill-conversation-ideas/scripts/distill_ledger.py' self-test
+if ($LASTEXITCODE -ne 0) { throw 'Distill ledger self-test failed.' }
 & python -m unittest discover -s tests -p 'test_*.py' -v
 if ($LASTEXITCODE -ne 0) { throw 'Repository tests failed.' }
 & python -m unittest discover -s 'plugins/rcf-focus/skills/recursive-center-field-dynamics/tests' -p 'test_*.py' -v

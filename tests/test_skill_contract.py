@@ -13,7 +13,7 @@ ADDRESS_ROOT = (
 DISTILL_ROOT = (
     REPO_ROOT / "plugins" / "rcf-distill" / "skills" / "distill-conversation-ideas"
 )
-RELEASE_VERSION = "0.4.0-alpha.1"
+RELEASE_VERSION = "0.4.0-alpha.2"
 
 
 class SkillContractTest(unittest.TestCase):
@@ -102,8 +102,14 @@ class SkillContractTest(unittest.TestCase):
         self.assertIn("address", address.lower())
         self.assertIn("lineage", address.lower())
         self.assertTrue((ADDRESS_ROOT / "scripts" / "address_engine.py").is_file())
+        self.assertIn("Address Skill v0.6", address)
+        self.assertIn("0.5-experimental", address)
         self.assertIn("canonical", distill.lower())
         self.assertIn("provenance", distill.lower())
+        self.assertIn("Distill Skill v0.2", distill)
+        self.assertIn("distill-ledger-1.0", distill)
+        self.assertTrue((DISTILL_ROOT / "scripts" / "distill_ledger.py").is_file())
+        self.assertTrue((DISTILL_ROOT / "references" / "merge-contract.md").is_file())
 
     def test_public_scope_states_implementation_limits(self) -> None:
         scope = (REPO_ROOT / "docs" / "release-scope.md").read_text(encoding="utf-8")
