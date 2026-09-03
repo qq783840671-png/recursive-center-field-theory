@@ -66,4 +66,3 @@ def build_task(suite: dict[str, Any], *, solver, scorer, seeds: Iterable[int] = 
             "Inspect AI is not installed; install optional requirements in an isolated environment"
         ) from exc
     return Task(dataset=build_dataset(suite, seeds=seeds), solver=solver, scorer=scorer)
-

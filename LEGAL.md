@@ -11,4 +11,3 @@ The Codex or model environment in which the Skill runs may process prompts, file
 The repository is provided under [CC BY-NC 4.0](LICENSE), without warranty. Use is experimental and at the user's risk. Structural validation does not guarantee factual correctness, task success, safety, or suitability for high-risk decisions.
 
 Focus never expands the parent agent's permissions. Users remain responsible for reviewing external actions, domain evidence, and outputs before relying on them.
-

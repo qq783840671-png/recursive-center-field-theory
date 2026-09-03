@@ -60,7 +60,6 @@ def to_conversational_test_case(suite: dict[str, Any], run: dict[str, Any]):
         },
     )
 
-
 def evaluate_run(
     suite: dict[str, Any],
     run: dict[str, Any],
@@ -80,4 +79,3 @@ def evaluate_run(
         test_cases=[to_conversational_test_case(suite, run)],
         metrics=metrics,
     )
-
