@@ -1,0 +1,7 @@
+interface:
+  display_name: "Focus Field"
+  short_description: "Locate your field and ask what matters"
+  default_prompt: "Use $focus to locate this situation, derive the governing question, and choose one valid next move."
+
+policy:
+  allow_implicit_invocation: false

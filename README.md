@@ -1,93 +1,114 @@
-# Recursive Partial-Order Multi-Center Dynamic Field Theory
+# Focus Field
 
-[简体中文](README.zh-CN.md) · local release candidate `v0.4.0-alpha.2` · system snapshot `2026.08.30-rcf.1` · not uploaded · personal non-commercial sharing
+**Know where you are. Ask what matters. Make the next valid move.**
 
-> Focus participates while Codex performs the parent task: it forms one current projection, drives a necessary frontier, revises obsolete closure when evidence changes, and preserves version lineage.
+Focus is an executable orientation layer for thought and action. It turns an overloaded, unclear, or changing situation into a current field, a functional position, a governing question, and one valid next move. As evidence changes, it revises that position without silently losing earlier reasoning.
 
-This repository publishes a developing philosophy–method–engineering system. It forms task-relative fields, distinguishes a multi-center complete field from one compact main-center view, reconstructs necessary partial order from actual work, assigns evidence-bound dynamic addresses, and maintains later versions through evidence, residuals, folding, and lineage.
+```text
+FORM → DRIVE → REVISE → FOLD
+locate   act      reopen    return
+```
 
-It is a personal research project and testable engineering prototype—not a natural law, complete ontology, or commercial service. The publication goal is to make definitions, implementations, tests, limits, and lineage inspectable and criticizable.
+Use it when information has become larger than the decision you need to make, when you do not yet know what to ask, when several directions compete, or when a changing project has lost its structural next step.
 
-## Current system
+## Install
 
-| Layer | Public artifact | Status |
-|---|---|---|
-| Root framework | [Recursive Center Partial-Order Dynamic Field Theory](docs/methodology/递归中心偏序动力场域论.md) | `v0.13`, philosophy-method prototype |
-| Dynamics specification | [Recursive Center-Field Partial-Order Dynamics](docs/spec/递归中心场偏序动力模型.md) | `v0.18`, candidate discrete-event model |
-| Multi-center specification | [Recursive Partial-Order Multi-Center Dynamic Field Theory](docs/spec/递归偏序多中心动态场域论.md) | `v0.7-draft` |
-| Dynamic addressing | [Field-relative Recursive Dynamic Addressing](docs/dynamic-addressing/递归动态寻址理论.md) | `v0.12-draft`; experimental engine included |
-| Public introduction | [Recursive Center-Field Theory](docs/theory.zh-CN.md) | `v0.7-draft` |
+The shortest path is a direct Skill install. Ask Codex:
 
-See [release scope and evidence boundaries](docs/release-scope.md) for authority order, implemented subsets, and open gaps.
+```text
+$skill-installer install https://github.com/qq783840671-png/recursive-center-field-theory/tree/main/plugin/skills/focus
+```
 
-### Two different kinds of potential
+Restart Codex or open a new task so the new Skill catalog is loaded.
 
-- Latent frontier `P_t^latent`: a calibrated legal address already exists, but the current parent contract does not require opening it this round; if unrealized it normally remains `[◇]`.
-- Latent residual `Λ_t`: an inactive difference record whose binding may be a legal address, an address candidate, or `unaddressed`; it is not an address and never carries `[◇]`.
+The repository also contains a one-Skill plugin package for marketplace distribution:
 
-In short, `P_t^latent` means “the position is known; defer it,” while `Λ_t` means “a difference is known; its position or disposition is not settled.”
-
-## Three Codex plugins
-
-- **RCF Focus** maintains a live task field through `FORM → DRIVE → REVISE → FOLD`, changes the next action when a structural difference exists, invalidates obsolete closure, and preserves versions and branches.
-- **RCF Address** generates, registers, queries, and audits field-relative, versioned, reopenable structural addresses.
-- **RCF Distill** conservatively merges durable claims, decisions, conflicts, residuals, and provenance into one canonical knowledge file.
-
-Address v0.6 is backed by the `0.5-experimental` persisted-state engine. Distill v0.2 adds an optional `distill-ledger-1.0` audit helper for persisted, compacted, disputed, or high-risk merges; the model still owns semantic comparison and the actual minimum edit.
-
-The Focus plugin also packages the `$focus` invocation alias. All three plugins contain local Skills and scripts only; they add no connector, hosted service, MCP server, or authentication dependency.
-
-After publication, the marketplace can be added with:
-
-```bash
+```text
 codex plugin marketplace add qq783840671-png/recursive-center-field-theory
 ```
 
-This is currently a local candidate, so the remote path may remain unavailable until a separate upload is authorized.
+Open `/plugins`, find **Focus Field**, and install it.
 
-## Start here
-
-- [Documentation map](docs/README.md)
-- [Focus constructive runtime](plugins/rcf-focus/README.md)
-- [Dynamic-address protocol](docs/dynamic-addressing/动态地址生成与运动协议.md)
-- [Open-source defect-repair example](examples/open-source-defect-repair/README.md)
-- [Mathematics, AI, and philosophy concept notes](docs/concepts/README.md)
-- [Comparison guide](docs/comparisons/README.md)
-
-## Claims and limits
-
-- `[D]` marks definitions or protocol behavior backed by current code and tests.
-- `[H]` marks hypotheses requiring comparison or empirical evaluation.
-- `[O]` marks open questions.
-
-The v0.18 runtime implements constructive framing and next-frontier decisions, typed knowledge deltas, dependency-scoped invalidation, immutable closure versions and branches, dynamic addresses, recursive fold/unwind, and separation of selected-center closure from complete-field closure. Historical sidecar and two-stage states remain supported for import and audit. The runtime does not yet implement automatic domain-truth discovery, a complete multi-center lifecycle, cross-task panorama recomposition, automatic reprojection, or proven performance gains.
-
-The project does not claim state of the art, universal outperformance, automatic recovery of true causality, lossless inversion of higher-dimensional reality, a solved general planner, or a proven cross-scale ontology. Mathematical and physical comparisons are structural references, not ontological proof.
-
-## Repository map
+## Try it
 
 ```text
-docs/                 theory, specifications, concepts, lineage, comparisons
-plugins/              three independent Codex plugins
-.agents/plugins/      repository marketplace manifest
-examples/             reproducible usage paths
-tests/                public contracts and example validation
-RELEASE_SNAPSHOT.md   frozen sources, file counts, and hashes
-release-manifest.json machine-readable component and compatibility matrix
+Use Focus: I am considering changing jobs, learning a new field, and protecting my income. I have too many directions and do not know what to decide first.
 ```
 
-## Participation and community
+Focus locates the decision before trying to solve it:
 
-The project welcomes reproducible defects, theoretical counterexamples, evidence challenges, documentation corrections, and bounded engineering improvements. Open participation does not mean every proposal enters the canonical theory; theory, protocol, implementation, and empirical claims have different evidence requirements.
+```text
+Focus field return
+Field: a career-direction decision under an income floor and learning goal
+Effect: formed a workable position from competing directions
+Position / governing question: employed learner / which option preserves the income floor while opening a credible learning path?
+Center / next move: sustainable transition / compare the three options against those two constraints
+Closure / version: field formed; decision remains open
+Open residue: actual income floor and time horizon
+```
 
-- [Contribution guide](CONTRIBUTING.md)
-- [Code of conduct](CODE_OF_CONDUCT.md)
-- [Support and channel routing](SUPPORT.md)
-- [Security policy](SECURITY.md)
-- [Governance](GOVERNANCE.md)
+The same structure can frame a research question, locate the center of a project, or maintain a long-running task when evidence invalidates an earlier conclusion:
 
-Use Discussions for interpretation, application ideas, and open comparison. Use the typed issue forms for reproducible failures, theory challenges, and documentation defects. Never post credentials, private conversations, unpublished manuscripts, or vulnerability details in a public issue.
+```text
+Use Focus: this research topic is too broad. Locate the field and find the smallest question that can change the conclusion.
 
-## License and citation
+Use Focus: finish this release. Keep the acceptance criteria, and reopen only the work affected by new test evidence.
+```
 
-Shared under [CC BY-NC 4.0](LICENSE): attribution is required and commercial use is not permitted. It is a source-available, non-commercial release rather than OSI-approved open-source software. Cite it with [CITATION.cff](CITATION.cff).
+For a simple request such as `Use Focus: what is 2 + 2?`, it answers `4` and returns `NOOP`. It does not manufacture a field when none is needed.
+
+## What Focus does
+
+- locates the active task field and its completion contract;
+- locates the subject or task's current functional position;
+- selects one current center without erasing relevant peer centers;
+- derives the governing question from the smallest unresolved difference that can change the center, legal frontier, or closure;
+- follows necessary partial order instead of a flat priority list;
+- opens detail only where the parent task requires it;
+- invalidates dependent conclusions when their support fails;
+- preserves closure versions, branches, evidence, and reopen points;
+- folds child results back into the parent task.
+
+## Where Focus sits
+
+| Mechanism | Primary question | Typical result |
+|---|---|---|
+| Prompt framework | How should the request be expressed? | an instruction pattern |
+| Workflow | What known steps should run? | a sequence and status |
+| RAG | What relevant material can be retrieved? | document fragments |
+| Knowledge graph | What entities and relations are connected? | nodes, relations, and paths |
+| **Focus** | Where am I in this field, what question matters, and what move is valid now? | position, center, governing question, next move, and reopenable version |
+
+Focus does not discover truth automatically. It does not replace retrieval, knowledge graphs, domain tools, permissions, or the parent model. Its runtime validates recorded structure; domain claims still require domain evidence.
+
+## The theory
+
+[Focus Field Theory](THEORY.md) is the compact English statement of the full system. Its central proposal is that a finite subject can act within unbounded information by constructing a task-relative field, locating a functional center, moving through necessary relations, and revising that location when reality changes.
+
+“Motion is absolute; stability is relative” remains the philosophical orientation. The engineering claim is narrower and falsifiable: explicit field, center, dependency, evidence, and version state may reduce drift, stale conclusions, illegal jumps, and rework under equal budgets.
+
+## Evidence
+
+The current implementation covers field formation, one-next-decision control, typed knowledge deltas, dependency-scoped invalidation, immutable closure versions, branches, and recursive fold/unwind.
+
+Automated tests establish runtime and package invariants. They do **not** establish that Focus outperforms an ordinary workflow, RAG, or a knowledge graph. The reproducible comparison protocol and harness are in [Evaluation](EVALUATION.md).
+
+## Repository
+
+```text
+plugin/       the Focus Field plugin and its single Skill
+evals/        behavior cases and the comparison harness
+tests/        public package and runtime tests
+THEORY.md     the complete concise theory
+EVALUATION.md claims, metrics, and evidence limits
+```
+
+Everything else is release, legal, or contribution infrastructure. Internal conversation records and the larger Chinese research archive are intentionally excluded.
+
+## Status
+
+This is an experimental, source-available alpha. It is not a natural law, a complete ontology, or evidence of universal performance gains.
+
+Version: `0.5.0-alpha.1` · License: [CC BY-NC 4.0](LICENSE)
+
+Contributions should provide a reproducible failure, counterexample, comparison, or narrowly scoped improvement. See [Contributing](CONTRIBUTING.md), [Security](SECURITY.md), and [Legal](LEGAL.md).

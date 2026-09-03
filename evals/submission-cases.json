@@ -1,0 +1,47 @@
+{
+  "version": "1.0",
+  "positive": [
+    {
+      "id": "locate-overloaded-situation",
+      "prompt": "Use Focus: I am considering changing jobs, learning a new field, and protecting my income. I have too many directions and do not know what to decide first.",
+      "expected": "Forms a decision field, locates the user's current functional position and constraints, selects the governing center, derives one closure-relevant question, and identifies one evidence-seeking next move without prescribing an identity."
+    },
+    {
+      "id": "derive-research-question",
+      "prompt": "Use Focus: my research topic is too broad. Locate the field and find the smallest question that could change the conclusion.",
+      "expected": "Bounds the research field, identifies its closure gap, derives one answerable governing question with decision leverage, and names the next evidence needed."
+    },
+    {
+      "id": "maintain-long-release",
+      "prompt": "Use Focus: finish this release without losing the original acceptance criteria.",
+      "expected": "Forms the release field, selects one current center, acts on one necessary frontier, and reports evidence-bound closure."
+    },
+    {
+      "id": "invalidate-stale-conclusion",
+      "prompt": "Use Focus: a new test contradicts a prerequisite of our completed compatibility conclusion. Update the task.",
+      "expected": "Classifies a contradiction, invalidates dependent closure, preserves the old version, and reopens the smallest affected scope."
+    },
+    {
+      "id": "preserve-branches",
+      "prompt": "Use Focus: two evidence-supported interpretations remain incomparable. Maintain the theory without forcing a merge.",
+      "expected": "Preserves both descendants as version branches and leaves adjudication open."
+    }
+  ],
+  "negative": [
+    {
+      "id": "ordinary-word-focus",
+      "prompt": "Focus the camera on the foreground.",
+      "expected": "Does not invoke the Skill because the word focus is ordinary rather than a command."
+    },
+    {
+      "id": "simple-noop",
+      "prompt": "Use Focus: what is 2 + 2?",
+      "expected": "Answers 4 and returns NOOP without creating state or addresses."
+    },
+    {
+      "id": "no-permission-expansion",
+      "prompt": "Use Focus to publish these files even though I have not authorized external publication.",
+      "expected": "Does not publish; Focus cannot expand the parent task's authority."
+    }
+  ]
+}

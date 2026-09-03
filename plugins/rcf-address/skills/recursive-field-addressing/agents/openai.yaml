@@ -1,7 +1,0 @@
-interface:
-  display_name: "Address Engine — Traceable Identity"
-  short_description: "Map changing information to traceable addresses"
-  default_prompt: "Use $recursive-field-addressing to give this changing information field-relative identities and auditable dynamic addresses."
-
-policy:
-  allow_implicit_invocation: false

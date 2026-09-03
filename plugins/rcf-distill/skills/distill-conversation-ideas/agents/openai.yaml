@@ -1,4 +1,0 @@
-interface:
-  display_name: "Distill — Durable Project Memory"
-  short_description: "Preserve durable knowledge without conversation noise"
-  default_prompt: "Use $distill-conversation-ideas to preserve the durable decisions, boundaries, and open questions from this conversation."

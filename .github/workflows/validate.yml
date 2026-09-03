@@ -1,4 +1,4 @@
-name: Validate public example
+name: Validate Focus Field
 
 on:
   push:
@@ -8,32 +8,24 @@ permissions:
   contents: read
 
 jobs:
-  public-example:
+  test:
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-      fail-fast: false
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
-      - name: Compile packaged helpers
-        run: python -m py_compile plugins/rcf-focus/skills/recursive-center-field-dynamics/scripts/focus_runtime.py plugins/rcf-focus/skills/recursive-center-field-dynamics/scripts/field_state.py plugins/rcf-address/skills/recursive-field-addressing/scripts/address_engine.py plugins/rcf-distill/skills/distill-conversation-ideas/scripts/distill_ledger.py
-
-      - name: Run Address engine self-test
-        run: python plugins/rcf-address/skills/recursive-field-addressing/scripts/address_engine.py self-test
-
-      - name: Run Distill ledger self-test
-        run: python plugins/rcf-distill/skills/distill-conversation-ideas/scripts/distill_ledger.py self-test
-
-      - name: Run public example tests
+      - name: Compile runtime
+        run: python -m py_compile plugin/skills/focus/scripts/focus_runtime.py
+      - name: Run public tests
         run: python -m unittest discover -s tests -p "test_*.py" -v
-
-      - name: Run Focus source tests
-        run: python -m unittest discover -s plugins/rcf-focus/skills/recursive-center-field-dynamics/tests -p "test_*.py" -v
+      - name: Validate comparison suite
+        working-directory: evals/focus-comparison
+        run: python run.py validate --suite datasets/pilot_tasks.json
+      - name: Test comparison harness
+        working-directory: evals/focus-comparison
+        run: python -m unittest discover -s tests -v

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">Focus Field orientation example</title>
+  <desc id="desc">An overloaded situation becomes a located field, a governing question, and one valid next move.</desc>
+  <rect width="1200" height="630" fill="#0E1E30"/>
+  <text x="72" y="88" fill="#FFFFFF" font-family="Arial, sans-serif" font-size="42" font-weight="700">Focus Field</text>
+  <text x="72" y="132" fill="#9CC6DB" font-family="Arial, sans-serif" font-size="22">Know where you are. Ask what matters. Move validly.</text>
+  <g font-family="Arial, sans-serif">
+    <rect x="72" y="190" width="260" height="116" rx="18" fill="#19324D" stroke="#477A96"/>
+    <text x="100" y="232" fill="#78D4F0" font-size="18" font-weight="700">FIELD</text>
+    <text x="100" y="270" fill="#FFFFFF" font-size="23">Career transition</text>
+    <path d="M346 248h94" stroke="#5ED0F2" stroke-width="6"/>
+    <path d="m420 228 24 20-24 20" fill="none" stroke="#5ED0F2" stroke-width="6"/>
+    <rect x="458" y="190" width="282" height="116" rx="18" fill="#24435D" stroke="#5ED0F2"/>
+    <text x="486" y="232" fill="#78D4F0" font-size="18" font-weight="700">POSITION</text>
+    <text x="486" y="270" fill="#FFFFFF" font-size="23">Employed learner</text>
+    <path d="M754 248h94" stroke="#5ED0F2" stroke-width="6"/>
+    <path d="m828 228 24 20-24 20" fill="none" stroke="#5ED0F2" stroke-width="6"/>
+    <rect x="866" y="190" width="262" height="116" rx="18" fill="#19324D" stroke="#477A96"/>
+    <text x="894" y="232" fill="#78D4F0" font-size="18" font-weight="700">QUESTION</text>
+    <text x="894" y="270" fill="#FFFFFF" font-size="21">What preserves both?</text>
+    <rect x="72" y="360" width="1056" height="188" rx="18" fill="#13283D" stroke="#31566E"/>
+    <text x="104" y="410" fill="#FFFFFF" font-size="22" font-weight="700">Focus field return</text>
+    <text x="104" y="452" fill="#B9D7E6" font-size="20">Field: career direction under income and learning constraints</text>
+    <text x="104" y="486" fill="#B9D7E6" font-size="20">Question: which option preserves income and opens a credible path?</text>
+    <text x="104" y="520" fill="#B9D7E6" font-size="20">Next move: compare the options against those two constraints</text>
+  </g>
+</svg>

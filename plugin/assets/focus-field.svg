@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Focus Field</title>
+  <desc id="desc">A field boundary, one selected center, and a directed next move.</desc>
+  <rect width="512" height="512" rx="112" fill="#19324D"/>
+  <circle cx="256" cy="256" r="154" fill="none" stroke="#7EC8E3" stroke-width="24" opacity=".42"/>
+  <circle cx="256" cy="256" r="72" fill="none" stroke="#EAF8FF" stroke-width="24"/>
+  <circle cx="256" cy="256" r="22" fill="#5ED0F2"/>
+  <path d="M328 256h92m-34-34 34 34-34 34" fill="none" stroke="#5ED0F2" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+

@@ -1,0 +1,42 @@
+{
+  "name": "focus-field",
+  "version": "0.5.0-alpha.1",
+  "description": "Locate the current field, derive the question that matters, and keep the next move valid as evidence changes.",
+  "author": {
+    "name": "qq783840671-png",
+    "url": "https://github.com/qq783840671-png"
+  },
+  "homepage": "https://github.com/qq783840671-png/recursive-center-field-theory",
+  "repository": "https://github.com/qq783840671-png/recursive-center-field-theory",
+  "license": "CC-BY-NC-4.0",
+  "keywords": [
+    "focus",
+    "orientation",
+    "metacognition",
+    "problem-framing",
+    "decision-making",
+    "long-horizon-agents",
+    "knowledge-revision"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Focus Field",
+    "shortDescription": "Locate your field and ask what matters",
+    "longDescription": "Focus turns an unclear, overloaded, or changing situation into a field-relative position, a governing question, and one valid next move, then revises that position as evidence changes.",
+    "developerName": "qq783840671-png",
+    "category": "Productivity",
+    "capabilities": ["Interactive", "Read", "Write"],
+    "websiteURL": "https://github.com/qq783840671-png/recursive-center-field-theory",
+    "privacyPolicyURL": "https://github.com/qq783840671-png/recursive-center-field-theory/blob/main/LEGAL.md#privacy",
+    "termsOfServiceURL": "https://github.com/qq783840671-png/recursive-center-field-theory/blob/main/LEGAL.md#terms",
+    "defaultPrompt": [
+      "Use Focus to locate my situation and find the question that matters now.",
+      "Use Focus to turn this broad research topic into one governing question.",
+      "Use Focus to keep this changing project aligned as evidence changes."
+    ],
+    "brandColor": "#19324D",
+    "composerIcon": "./assets/focus-field.svg",
+    "logo": "./assets/focus-field.svg",
+    "screenshots": ["./assets/demo.svg"]
+  }
+}

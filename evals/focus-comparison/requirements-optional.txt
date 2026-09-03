@@ -1,0 +1,4 @@
+# Install in an isolated environment. Record resolved versions with every real run.
+inspect-ai
+deepeval
+

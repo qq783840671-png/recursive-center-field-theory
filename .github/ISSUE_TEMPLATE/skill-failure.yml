@@ -1,56 +1,45 @@
-name: Runtime or Skill failure
-description: Report a reproducible Focus, Address, Distill, packaging, or execution failure.
-title: "[Failure]: "
+name: Focus failure
+description: Report reproducible Focus Skill, runtime, packaging, or installation behavior.
+title: "[Focus]: "
 labels: ["skill-failure"]
 body:
   - type: textarea
-    id: field-contract
+    id: contract
     attributes:
-      label: Field contract and acceptance condition
-      description: State the goal, boundary, closure gap, evidence standard, and what counted as complete.
+      label: Task contract
+      description: State the goal, boundary, constraints, evidence, and completion condition.
     validations:
       required: true
   - type: textarea
     id: invocation
     attributes:
       label: Invocation and minimal input
-      description: Include the exact Focus invocation and the smallest non-private input that reproduces the problem.
+      description: Include the exact Focus invocation and smallest non-private reproduction.
     validations:
       required: true
   - type: textarea
     id: expected
     attributes:
-      label: Expected legal structure or behavior
-      description: Describe the expected Focus-1 gate, selected center, predecessor rule, address, action, Fold/Unwind result, or residual classification.
+      label: Expected behavior
     validations:
       required: true
   - type: textarea
     id: actual
     attributes:
-      label: Actual result
-      description: Include relevant state version, address, modal status, evidence, and residual output.
+      label: Actual behavior
     validations:
       required: true
   - type: textarea
     id: environment
     attributes:
       label: Environment
-      description: Codex surface, operating system, Python version, Skill or Plugin version, and schema version.
+      description: Codex surface, operating system, Python version, and Focus version.
     validations:
       required: true
   - type: checkboxes
-    id: checks
-    attributes:
-      label: Reproduction checks
-      options:
-        - label: I reproduced this against the current release or explained why I could not.
-          required: true
-        - label: I distinguished a runtime defect from disagreement with a theory claim.
-          required: true
-  - type: checkboxes
     id: privacy
     attributes:
-      label: Privacy check
+      label: Privacy
       options:
-        - label: I removed credentials, private conversations, unpublished manuscripts, and unrelated workspace material.
+        - label: I removed credentials, private conversations, and unrelated project material.
           required: true
