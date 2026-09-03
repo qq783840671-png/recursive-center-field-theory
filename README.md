@@ -109,6 +109,6 @@ Everything else is release, legal, or contribution infrastructure. Internal conv
 
 This is an experimental, source-available alpha. It is not a natural law, a complete ontology, or evidence of universal performance gains.
 
-Version: `0.5.0-alpha.1` · License: [CC BY-NC 4.0](LICENSE)
+Version: `0.5.0-alpha.2` · License: [CC BY-NC 4.0](LICENSE)
 
 Contributions should provide a reproducible failure, counterexample, comparison, or narrowly scoped improvement. See [Contributing](CONTRIBUTING.md), [Security](SECURITY.md), and [Legal](LEGAL.md).

@@ -1,6 +1,6 @@
 {
   "name": "focus-field",
-  "version": "0.5.0-alpha.1",
+  "version": "0.5.0-alpha.2",
   "description": "Locate the current field, derive the question that matters, and keep the next move valid as evidence changes.",
   "author": {
     "name": "qq783840671-png",

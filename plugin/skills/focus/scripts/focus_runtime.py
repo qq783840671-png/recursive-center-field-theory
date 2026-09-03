@@ -21,6 +21,17 @@ from pathlib import Path
 from typing import Any
 
 
+def _configure_utf8_stdio() -> None:
+    """Keep JSON output writable on Windows runners with legacy code pages."""
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if callable(reconfigure):
+            reconfigure(encoding="utf-8")
+
+
+_configure_utf8_stdio()
+
+
 SCHEMA_VERSION = "focus-constructive-2.0"
 LEGACY_SCHEMA_VERSION = "focus-two-stage-1.1"
 CENTER_STATUSES = {"candidate", "active", "blocked", "closed", "invalid"}

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.0-alpha.2 — 2026-09-03
+
+- Made Focus runtime JSON output use UTF-8 explicitly on Windows hosts with legacy console code pages.
+- Preserved `0.5.0-alpha.1` as the first public prerelease and published this fix as a new version rather than moving its tag.
+
 ## 0.5.0-alpha.1 — 2026-09-03
 
 - Renamed the public product to **Focus Field**.
