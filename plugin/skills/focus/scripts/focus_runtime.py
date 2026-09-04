@@ -203,6 +203,7 @@ def upgrade_state_in_memory(state: dict[str, Any]) -> dict[str, Any]:
             address.setdefault("invalidated_by", [])
     for field in state.get("fields", {}).values():
         if isinstance(field, dict):
+            field.setdefault("orientation", None)
             field.setdefault("closure_certificates", [])
             field.setdefault("current_closure_version_id", None)
             field.setdefault("invalidation_history", [])
@@ -290,6 +291,38 @@ def normalize_contract(payload: dict[str, Any], label: str) -> dict[str, Any]:
         "constraints": require_list(contract.get("constraints", []), f"{label}.contract.constraints"),
     }
     return normalized
+
+
+def normalize_orientation(payload: dict[str, Any], label: str) -> dict[str, Any] | None:
+    raw = payload.get("orientation")
+    if raw is None:
+        return None
+    if not isinstance(raw, dict):
+        raise FocusRuntimeError(f"{label}.orientation must be an object")
+    return {
+        "functional_position": require_text(
+            raw.get("functional_position"),
+            f"{label}.orientation.functional_position",
+        ),
+        "governing_question": require_text(
+            raw.get("governing_question"),
+            f"{label}.orientation.governing_question",
+        ),
+        "evidence_needed": [
+            require_text(item, f"{label}.orientation.evidence_needed[]")
+            for item in require_list(
+                raw.get("evidence_needed", []),
+                f"{label}.orientation.evidence_needed",
+            )
+        ],
+        "reopen_triggers": [
+            require_text(item, f"{label}.orientation.reopen_triggers[]")
+            for item in require_list(
+                raw.get("reopen_triggers", []),
+                f"{label}.orientation.reopen_triggers",
+            )
+        ],
+    }
 
 
 def normalize_centers(payload: dict[str, Any], label: str) -> tuple[list[dict[str, Any]], dict[str, dict[str, Any]]]:
@@ -460,6 +493,7 @@ def build_field(
     label: str,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     contract = normalize_contract(payload, label)
+    orientation = normalize_orientation(payload, label)
     centers, node_defs = normalize_centers(payload, label)
     center_ids = {center["center_id"] for center in centers}
     selected_center_id = require_text(payload.get("selected_center_id"), f"{label}.selected_center_id")
@@ -482,6 +516,7 @@ def build_field(
         {
             "field_id": field_id,
             "contract": contract,
+            "orientation": orientation,
             "centers": centers,
             "order": order,
             "center_relations": center_relations,
@@ -666,6 +701,7 @@ def build_field(
         "primary_parent": parent_binding,
         "goal_contract_id": goal_contract_id,
         "contract": contract,
+        "orientation": orientation,
         "closure_gap": closure_gap,
         "remaining_closure_gap": closure_gap,
         "confidence": confidence,
@@ -1264,6 +1300,17 @@ def validate_state(state: dict[str, Any]) -> list[str]:
     for field_id, field in state["fields"].items():
         if field.get("field_id") != field_id:
             errors.append(f"field key {field_id} does not match field_id")
+        orientation = field.get("orientation")
+        if orientation is not None and (
+            not isinstance(orientation, dict)
+            or not isinstance(orientation.get("functional_position"), str)
+            or not orientation.get("functional_position")
+            or not isinstance(orientation.get("governing_question"), str)
+            or not orientation.get("governing_question")
+            or not isinstance(orientation.get("evidence_needed"), list)
+            or not isinstance(orientation.get("reopen_triggers"), list)
+        ):
+            errors.append(f"field {field_id} orientation is invalid")
         centers = field.get("centers", [])
         center_ids = {item.get("center_id") for item in centers if isinstance(item, dict)}
         if field.get("selected_center_ref") not in center_ids:
@@ -1626,6 +1673,7 @@ def cmd_frame(args: argparse.Namespace) -> int:
         "FOCUS_1_FRAME",
         {
             "field_id": field_id,
+            "orientation": field["orientation"],
             "selected_center_ref": field["selected_center_ref"],
             "peer_center_refs": field["peer_center_refs"],
             "projection_certificate": field["projection_certificate"]["certificate_id"],
@@ -1637,6 +1685,7 @@ def cmd_frame(args: argparse.Namespace) -> int:
         canonical_json(
             {
                 "field_id": field_id,
+                "orientation": field["orientation"],
                 "selected_center": field["selected_center_ref"],
                 "peer_centers": field["peer_center_refs"],
                 "closure_gap": field["closure_gap"],
@@ -1978,6 +2027,7 @@ def cmd_fold(args: argparse.Namespace) -> int:
     conclusion = require_text(payload.get("conclusion"), "fold.conclusion")
     evidence = require_list(payload.get("evidence", []), "fold.evidence")
     focus_return = {
+        "orientation": field["orientation"],
         "selected_center_closure": selected_closed,
         "outputs": payload.get("outputs", []),
         "evidence": evidence,
@@ -2019,6 +2069,7 @@ def cmd_fold(args: argparse.Namespace) -> int:
             {
                 "field_id": field["field_id"],
                 "contract": field["contract"],
+                "orientation": field["orientation"],
                 "selected_center": field["selected_center_ref"],
                 "addresses": address_snapshot,
                 "conclusion": conclusion,
@@ -2052,6 +2103,7 @@ def cmd_fold(args: argparse.Namespace) -> int:
                 ),
                 "field_id": field["field_id"],
                 "field_version_id": field["field_version_id"],
+                "orientation": field["orientation"],
                 "parent_versions": parent_versions,
                 "snapshot_hash": snapshot_hash,
                 "status": "current",
@@ -2327,6 +2379,7 @@ def state_summary(state: dict[str, Any]) -> dict[str, Any]:
         "stack_depth": max(0, len(state.get("field_stack", [])) - 1),
         "current_field": None if field is None else field["field_id"],
         "goal": None if field is None else field["contract"]["goal"],
+        "orientation": None if field is None else field["orientation"],
         "closure_gap": None if field is None else field["remaining_closure_gap"],
         "selected_center": None if field is None else field["selected_center_ref"],
         "peer_centers": [] if field is None else field["peer_center_refs"],

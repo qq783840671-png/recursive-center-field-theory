@@ -14,6 +14,8 @@ The runtime maintains three separate version axes:
 
 It also maintains `knowledge_deltas`, `decision_history`, `active_decision`, `version_branches`, `closure_certificates`, and `invalidation_history`.
 
+A field may carry one `orientation` object containing its `functional_position`, `governing_question`, `evidence_needed`, and `reopen_triggers`. The runtime preserves this object in field and closure versions. The model remains responsible for whether the position and question are semantically correct.
+
 ## Delta intake
 
 ```json

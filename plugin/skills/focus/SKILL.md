@@ -37,7 +37,7 @@ When the request is vague, overloaded, or begins with “I do not know what to a
 
 A complete field may have several centers. One Focus projection operates one selected center and keeps only the peer interfaces needed to return safely.
 
-When persistent state is useful, initialize `scripts/focus_runtime.py` in constructive mode and call `frame`. Read [constructive-loop.md](references/constructive-loop.md) for payloads.
+When persistent state is useful, initialize `scripts/focus_runtime.py` in constructive mode and call `frame`. Store the functional position, governing question, evidence needed, and reopen triggers in `orientation` so they survive summaries and closure versions. Read [constructive-loop.md](references/constructive-loop.md) for payloads.
 
 ## DRIVE — choose one next move
 
@@ -59,6 +59,8 @@ ADD | REFINE | CONTRADICT | OUTSIDE | NOOP
 ```
 
 Preserve the raw delta, locate the nearest affected position, and reopen only the smallest sound scope. If a necessary predecessor or interface fails, withdraw unsupported realization, invalidate dependent closure, and preserve the old version. Keep incomparable supported outcomes as branches rather than merging them by recency.
+
+Call an action rework only when it actually repeats, replaces, or invalidates an earlier completed action or result. Evidence integration, verification, and downstream synthesis are not rework by themselves.
 
 Read [knowledge-revision.md](references/knowledge-revision.md) when classifying deltas and [closure-and-invalidation.md](references/closure-and-invalidation.md) when prior closure may fail.
 

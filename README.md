@@ -9,6 +9,8 @@ FORM → DRIVE → REVISE → FOLD
 locate   act      reopen    return
 ```
 
+![Focus locates a position, reacts to invalidating evidence, and reopens only the affected scope.](plugin/assets/demo.svg)
+
 Use it when information has become larger than the decision you need to make, when you do not yet know what to ask, when several directions compete, or when a changing project has lost its structural next step.
 
 ## Install
@@ -89,9 +91,9 @@ Focus does not discover truth automatically. It does not replace retrieval, know
 
 ## Evidence
 
-The current implementation covers field formation, one-next-decision control, typed knowledge deltas, dependency-scoped invalidation, immutable closure versions, branches, and recursive fold/unwind.
+The current implementation covers field formation, persisted functional position and governing question, one-next-decision control, typed knowledge deltas, dependency-scoped invalidation, immutable closure versions, branches, and recursive fold/unwind.
 
-Automated tests establish runtime and package invariants. They do **not** establish that Focus outperforms an ordinary workflow, RAG, or a knowledge graph. The reproducible comparison protocol and harness are in [Evaluation](EVALUATION.md).
+Automated tests establish runtime and package invariants; they do **not** establish general superiority. A three-seed typed-revision calibration found a small structural gain over an equal-ledger baseline at substantial protocol cost. The protocol, exact limits, and comparison harness are in [Evaluation](EVALUATION.md).
 
 ## Repository
 
@@ -109,6 +111,6 @@ Everything else is release, legal, or contribution infrastructure. Internal conv
 
 This is an experimental, source-available alpha. It is not a natural law, a complete ontology, or evidence of universal performance gains.
 
-Version: `0.5.0-alpha.2` · License: [CC BY-NC 4.0](LICENSE)
+Version: `0.5.0-alpha.3` · License: [CC BY-NC 4.0](LICENSE)
 
 Contributions should provide a reproducible failure, counterexample, comparison, or narrowly scoped improvement. See [Contributing](CONTRIBUTING.md), [Security](SECURITY.md), and [Legal](LEGAL.md).

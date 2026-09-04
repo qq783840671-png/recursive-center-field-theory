@@ -85,6 +85,12 @@ class ConstructiveFocusRuntimeTest(unittest.TestCase):
                 {
                     "field_id": "knowledge-field",
                     "contract": contract(),
+                    "orientation": {
+                        "functional_position": "正在维护可修订结论的分析者",
+                        "governing_question": "哪项证据会改变当前结论？",
+                        "evidence_needed": ["必要前提的验证结果"],
+                        "reopen_triggers": ["必要前提被反驳"],
+                    },
                     "closure_gap": "当前命题尚未取得闭合证据",
                     "centers": [
                         center(
@@ -99,6 +105,22 @@ class ConstructiveFocusRuntimeTest(unittest.TestCase):
                 },
             ),
             0,
+        )
+
+    def test_orientation_survives_summary_and_closure_version(self):
+        self.init()
+        self.frame()
+        state = self.state()
+        orientation = state["fields"]["knowledge-field"]["orientation"]
+        self.assertEqual(RUNTIME.state_summary(state)["orientation"], orientation)
+        self.assertEqual(self.execute(["premise"], "premise"), 0)
+        self.assertEqual(self.execute(["conclusion"], "conclusion"), 0)
+        self.assertEqual(self.fold_closed(), 0)
+        state = self.state()
+        self.assertEqual(state["field_closure_versions"][0]["orientation"], orientation)
+        self.assertEqual(
+            state["fields"]["knowledge-field"]["focus_return"]["orientation"],
+            orientation,
         )
 
     def execute(self, addresses, suffix):

@@ -1,27 +1,45 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
-  <title id="title">Focus Field orientation example</title>
-  <desc id="desc">An overloaded situation becomes a located field, a governing question, and one valid next move.</desc>
+  <title id="title">Focus Field dynamic revision</title>
+  <desc id="desc">Focus locates a position, detects invalidating evidence, and reopens only the affected reasoning while preserving version lineage.</desc>
   <rect width="1200" height="630" fill="#0E1E30"/>
-  <text x="72" y="88" fill="#FFFFFF" font-family="Arial, sans-serif" font-size="42" font-weight="700">Focus Field</text>
-  <text x="72" y="132" fill="#9CC6DB" font-family="Arial, sans-serif" font-size="22">Know where you are. Ask what matters. Move validly.</text>
   <g font-family="Arial, sans-serif">
-    <rect x="72" y="190" width="260" height="116" rx="18" fill="#19324D" stroke="#477A96"/>
-    <text x="100" y="232" fill="#78D4F0" font-size="18" font-weight="700">FIELD</text>
-    <text x="100" y="270" fill="#FFFFFF" font-size="23">Career transition</text>
-    <path d="M346 248h94" stroke="#5ED0F2" stroke-width="6"/>
-    <path d="m420 228 24 20-24 20" fill="none" stroke="#5ED0F2" stroke-width="6"/>
-    <rect x="458" y="190" width="282" height="116" rx="18" fill="#24435D" stroke="#5ED0F2"/>
-    <text x="486" y="232" fill="#78D4F0" font-size="18" font-weight="700">POSITION</text>
-    <text x="486" y="270" fill="#FFFFFF" font-size="23">Employed learner</text>
-    <path d="M754 248h94" stroke="#5ED0F2" stroke-width="6"/>
-    <path d="m828 228 24 20-24 20" fill="none" stroke="#5ED0F2" stroke-width="6"/>
-    <rect x="866" y="190" width="262" height="116" rx="18" fill="#19324D" stroke="#477A96"/>
-    <text x="894" y="232" fill="#78D4F0" font-size="18" font-weight="700">QUESTION</text>
-    <text x="894" y="270" fill="#FFFFFF" font-size="21">What preserves both?</text>
-    <rect x="72" y="360" width="1056" height="188" rx="18" fill="#13283D" stroke="#31566E"/>
-    <text x="104" y="410" fill="#FFFFFF" font-size="22" font-weight="700">Focus field return</text>
-    <text x="104" y="452" fill="#B9D7E6" font-size="20">Field: career direction under income and learning constraints</text>
-    <text x="104" y="486" fill="#B9D7E6" font-size="20">Question: which option preserves income and opens a credible path?</text>
-    <text x="104" y="520" fill="#B9D7E6" font-size="20">Next move: compare the options against those two constraints</text>
+    <text x="64" y="72" fill="#FFFFFF" font-size="40" font-weight="700">Focus Field</text>
+    <text x="64" y="108" fill="#9CC6DB" font-size="20">Locate → move → revise without losing where you were</text>
+
+    <rect x="64" y="158" width="314" height="308" rx="18" fill="#152B42" stroke="#477A96"/>
+    <text x="90" y="198" fill="#78D4F0" font-size="17" font-weight="700">1 · LOCATE</text>
+    <text x="90" y="240" fill="#FFFFFF" font-size="21" font-weight="700">Field</text>
+    <text x="90" y="270" fill="#B9D7E6" font-size="18">revise a theory under conflict</text>
+    <text x="90" y="316" fill="#FFFFFF" font-size="21" font-weight="700">Position</text>
+    <text x="90" y="346" fill="#B9D7E6" font-size="18">author testing premise P1</text>
+    <text x="90" y="392" fill="#FFFFFF" font-size="21" font-weight="700">Governing question</text>
+    <text x="90" y="422" fill="#B9D7E6" font-size="18">which claims depend on P1?</text>
+
+    <path d="M392 312h52" stroke="#5ED0F2" stroke-width="5"/>
+    <path d="m430 296 18 16-18 16" fill="none" stroke="#5ED0F2" stroke-width="5"/>
+
+    <rect x="462" y="158" width="276" height="308" rx="18" fill="#3B2831" stroke="#D47A8A"/>
+    <text x="488" y="198" fill="#FF9EB0" font-size="17" font-weight="700">2 · CHANGE</text>
+    <text x="488" y="246" fill="#FFFFFF" font-size="21" font-weight="700">New evidence</text>
+    <text x="488" y="280" fill="#FFD0D8" font-size="18">contradicts premise P1</text>
+    <rect x="488" y="316" width="224" height="62" rx="12" fill="#5A303C"/>
+    <text x="508" y="354" fill="#FFFFFF" font-size="18">P1 → INVALID</text>
+    <text x="488" y="414" fill="#FFD0D8" font-size="17">typed delta: CONTRADICT</text>
+
+    <path d="M752 312h52" stroke="#5ED0F2" stroke-width="5"/>
+    <path d="m790 296 18 16-18 16" fill="none" stroke="#5ED0F2" stroke-width="5"/>
+
+    <rect x="822" y="158" width="314" height="308" rx="18" fill="#153B38" stroke="#5BBEAF"/>
+    <text x="848" y="198" fill="#71E0CD" font-size="17" font-weight="700">3 · REVISE</text>
+    <text x="848" y="242" fill="#FFFFFF" font-size="19">v1 preserved as history</text>
+    <text x="848" y="282" fill="#FFFFFF" font-size="19">dependent claim reopened</text>
+    <text x="848" y="322" fill="#FFFFFF" font-size="19">unrelated branch stays closed</text>
+    <line x1="848" y1="350" x2="1110" y2="350" stroke="#3F746E"/>
+    <text x="848" y="394" fill="#71E0CD" font-size="21" font-weight="700">v2 · current</text>
+    <text x="848" y="426" fill="#C8EEE8" font-size="17">reopen the smallest sound scope</text>
+
+    <rect x="64" y="510" width="1072" height="72" rx="16" fill="#13283D" stroke="#31566E"/>
+    <text x="90" y="554" fill="#FFFFFF" font-size="20" font-weight="700">Next valid move:</text>
+    <text x="258" y="554" fill="#B9D7E6" font-size="20">retest only the claims whose support passed through P1</text>
   </g>
 </svg>

@@ -31,6 +31,12 @@ init --mode constructive
     "evidence_standard": "what evidence is sufficient",
     "constraints": []
   },
+  "orientation": {
+    "functional_position": "the subject or task's current binding in this field",
+    "governing_question": "the one question whose answer can change the judgment",
+    "evidence_needed": ["the evidence needed to answer it"],
+    "reopen_triggers": ["a change that makes this position or question stale"]
+  },
   "closure_gap": "the difference currently blocking completion",
   "centers": [
     {
@@ -57,6 +63,8 @@ init --mode constructive
   "invalidation_triggers": []
 }
 ```
+
+Include `orientation` when the task is unclear, overloaded, or decision-bearing. It is optional for compatibility with earlier machine states, but when present the runtime keeps it in field identity, summaries, Focus return, and closure versions.
 
 Use `frontier_class=expansion_required` only when the position cannot be legally realized without opening a child field. Use `expansion_latent` for a legal but currently unnecessary expansion. Neither class names a residual.
 
