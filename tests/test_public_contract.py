@@ -42,7 +42,7 @@ class PublicContractTest(unittest.TestCase):
             (PLUGIN / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8")
         )
         self.assertEqual(manifest["name"], "focus-field")
-        self.assertEqual(manifest["version"], "0.5.0-alpha.2")
+        self.assertEqual(manifest["version"], "0.5.0-alpha.3")
         self.assertEqual(manifest["skills"], "./skills/")
         self.assertIn("problem-framing", manifest["keywords"])
         interface = manifest["interface"]
@@ -75,7 +75,7 @@ class PublicContractTest(unittest.TestCase):
         self.assertIn("Use Focus:", text)
         self.assertIn("NOOP", text)
         self.assertIn("do **not** establish", text)
-        self.assertIn("0.5.0-alpha.2", text)
+        self.assertIn("0.5.0-alpha.3", text)
 
     def test_core_is_one_english_theory(self) -> None:
         theory = (ROOT / "THEORY.md").read_text(encoding="utf-8")

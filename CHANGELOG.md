@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0-alpha.3 — 2026-09-04
+
+- Persisted the functional position, governing question, evidence needs, and reopen triggers in runtime field and closure versions.
+- Clarified when an action counts as rework and corrected the revision pilot's second necessary-rework annotation.
+- Replaced the static orientation graphic with a locate-change-revise trace and added a limited real-execution calibration.
+- Stopped capability reports from marking unmatched RAG or knowledge-graph comparisons as measured.
+
 ## 0.5.0-alpha.2 — 2026-09-03
 
 - Made Focus runtime JSON output use UTF-8 explicitly on Windows hosts with legacy console code pages.
