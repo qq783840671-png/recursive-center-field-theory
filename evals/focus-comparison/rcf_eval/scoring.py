@@ -181,6 +181,8 @@ def score_run(suite: dict[str, Any], run: dict[str, Any]) -> dict[str, Any]:
     return {
         "run_id": run["run_id"],
         "task_id": run["task_id"],
+        "task_family": task["family"],
+        "capability_ids": task["capability_ids"],
         "condition": run["condition"],
         "seed": run["seed"],
         "synthetic": bool(run.get("synthetic", False)),
@@ -236,27 +238,27 @@ def _bootstrap_ci(values: list[float], *, seed: int, samples: int = 2000) -> lis
     return [lower, upper]
 
 
-def aggregate_scores(scores: list[dict[str, Any]]) -> dict[str, Any]:
-    if not scores:
-        raise ValueError("at least one score is required")
+METRIC_NAMES = (
+    "drift_rate",
+    "error_rate",
+    "rework_count",
+    "avoidable_rework_count",
+    "necessary_rework_recall",
+    "closure_quality",
+)
+
+
+def _summarize_scores(scores: list[dict[str, Any]]) -> dict[str, Any]:
     grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for score in scores:
         grouped[score["condition"]["id"]].append(score)
-    metric_names = (
-        "drift_rate",
-        "error_rate",
-        "rework_count",
-        "avoidable_rework_count",
-        "necessary_rework_recall",
-        "closure_quality",
-    )
     condition_rows: dict[str, Any] = {}
     for condition in CONDITIONS:
         condition_scores = grouped.get(condition["id"], [])
         if not condition_scores:
             continue
         metric_summary: dict[str, Any] = {}
-        for index, metric_name in enumerate(metric_names):
+        for index, metric_name in enumerate(METRIC_NAMES):
             values = [float(item["metrics"][metric_name]) for item in condition_scores]
             metric_summary[metric_name] = {
                 "mean": statistics.fmean(values),
@@ -264,53 +266,118 @@ def aggregate_scores(scores: list[dict[str, Any]]) -> dict[str, Any]:
                 "n": len(values),
             }
         resource_summary: dict[str, Any] = {}
-        for index, resource_name in enumerate(
-            ("tokens", "elapsed_seconds", "tool_calls")
-        ):
-            values = [
-                float(item["resources"][resource_name]) for item in condition_scores
-            ]
+        for index, resource_name in enumerate(("tokens", "elapsed_seconds", "tool_calls")):
+            values = [float(item["resources"][resource_name]) for item in condition_scores]
             resource_summary[resource_name] = {
                 "mean": statistics.fmean(values),
                 "ci95": _bootstrap_ci(values, seed=2701 + index),
                 "n": len(values),
             }
-        token_measurements = sorted(
-            {item["resources"]["token_measurement"] for item in condition_scores}
-        )
         condition_rows[condition["id"]] = {
             "condition": condition,
             "metrics": metric_summary,
             "resources": resource_summary,
-            "token_measurements": token_measurements,
+            "token_measurements": sorted(
+                {item["resources"]["token_measurement"] for item in condition_scores}
+            ),
         }
+    return condition_rows
 
+
+def _paired_effects(
+    scores: list[dict[str, Any]],
+    memories: Iterable[str],
+    *,
+    baseline_workflow: str = "ordinary",
+) -> dict[str, Any]:
+    by_cell = {
+        (score["task_id"], score["seed"], score["condition"]["id"]): score
+        for score in scores
+    }
     effects: dict[str, Any] = {}
-    for memory in ("none", "rag", "kg"):
-        ordinary = condition_rows.get(f"ordinary-{memory}")
-        focus = condition_rows.get(f"focus-{memory}")
-        if ordinary is None or focus is None:
+    for memory in memories:
+        pairs = []
+        for task_id, seed, condition_id in sorted(by_cell):
+            if condition_id != f"{baseline_workflow}-{memory}":
+                continue
+            ordinary = by_cell[(task_id, seed, condition_id)]
+            focus = by_cell.get((task_id, seed, f"focus-{memory}"))
+            if focus is not None:
+                pairs.append((ordinary, focus))
+        if not pairs:
             continue
+        metrics: dict[str, Any] = {}
+        for index, metric in enumerate(METRIC_NAMES):
+            deltas = [
+                float(focus["metrics"][metric]) - float(ordinary["metrics"][metric])
+                for ordinary, focus in pairs
+            ]
+            metrics[metric] = {
+                "mean_delta": statistics.fmean(deltas),
+                "ci95": _bootstrap_ci(deltas, seed=3701 + index),
+            }
+        resources: dict[str, Any] = {}
+        for index, resource in enumerate(("tokens", "elapsed_seconds", "tool_calls")):
+            deltas = [
+                float(focus["resources"][resource]) - float(ordinary["resources"][resource])
+                for ordinary, focus in pairs
+            ]
+            resources[resource] = {
+                "mean_delta": statistics.fmean(deltas),
+                "ci95": _bootstrap_ci(deltas, seed=4701 + index),
+            }
         effects[memory] = {
-            metric: focus["metrics"][metric]["mean"] - ordinary["metrics"][metric]["mean"]
-            for metric in metric_names
+            "paired_n": len(pairs),
+            "baseline_workflow": baseline_workflow,
+            "metrics": metrics,
+            "resources": resources,
         }
-        effects[memory]["resources"] = {
-            resource: focus["resources"][resource]["mean"]
-            - ordinary["resources"][resource]["mean"]
-            for resource in ("tokens", "elapsed_seconds", "tool_calls")
-        }
+    return effects
+
+
+def aggregate_scores(
+    scores: list[dict[str, Any]], suite: dict[str, Any] | None = None
+) -> dict[str, Any]:
+    if not scores:
+        raise ValueError("at least one score is required")
+    condition_rows = _summarize_scores(scores)
+    effects = _paired_effects(scores, ("none", "rag", "kg"))
+    stateful_effects = _paired_effects(
+        scores, ("none", "rag", "kg"), baseline_workflow="stateful"
+    )
+    capability_results: dict[str, Any] = {}
+    if suite is not None:
+        validate_suite(suite)
+        for capability in suite["capabilities"]:
+            capability_scores = [
+                score for score in scores if score["task_id"] in capability["task_ids"]
+            ]
+            capability_effects = _paired_effects(
+                capability_scores,
+                capability["matched_memories"],
+                baseline_workflow=capability["baseline_workflow"],
+            )
+            capability_results[capability["id"]] = {
+                "definition": capability,
+                "run_count": len(capability_scores),
+                "conditions": _summarize_scores(capability_scores),
+                "focus_effect_by_memory": capability_effects,
+                "status": "measured" if capability_effects else "not-in-matched-comparison",
+            }
 
     return {
-        "schema_version": "focus-eval-summary-1.0",
+        "schema_version": "focus-eval-summary-1.1",
         "run_count": len(scores),
         "contains_synthetic_runs": any(score.get("synthetic") for score in scores),
         "conditions": condition_rows,
         "focus_effect_by_memory": effects,
+        "focus_effect_vs_stateful_by_memory": stateful_effects,
+        "capabilities": capability_results,
         "interpretation": {
             "lower_is_better": ["drift_rate", "error_rate", "avoidable_rework_count"],
             "higher_is_better": ["necessary_rework_recall", "closure_quality"],
             "descriptive": ["rework_count"],
             "warning": "Synthetic runs validate the harness only and are not empirical evidence.",
+            "rework_scope_warning": "Rework necessity is annotated per event. Multi-event revision chains require raw-trajectory or human review before an avoidable-rework label is treated as semantic failure.",
         },
     }

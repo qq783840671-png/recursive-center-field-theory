@@ -28,9 +28,10 @@ class ScoringTests(unittest.TestCase):
 
     def test_reference_run_scores_perfectly(self):
         score = score_run(self.suite, self.make_run())
+        self.assertIn("typed-revision", score["capability_ids"])
         self.assertEqual(0.0, score["metrics"]["drift_rate"])
         self.assertEqual(0.0, score["metrics"]["error_rate"])
-        self.assertEqual(1, score["metrics"]["rework_count"])
+        self.assertEqual(2, score["metrics"]["rework_count"])
         self.assertEqual(1.0, score["metrics"]["necessary_rework_recall"])
         self.assertEqual(0, score["metrics"]["avoidable_rework_count"])
         self.assertEqual(1.0, score["metrics"]["closure_quality"])
@@ -56,14 +57,34 @@ class ScoringTests(unittest.TestCase):
 
     def test_aggregate_reports_focus_effect_with_direction(self):
         ordinary = self.make_run("ordinary-none", "ordinary", "none", 1)
+        stateful = self.make_run("stateful-none", "stateful", "none", 1)
         focus = self.make_run("focus-none", "focus", "none", 1)
         ordinary["steps"][0]["state_snapshot"]["goal_refs"] = []
-        scores = [score_run(self.suite, ordinary), score_run(self.suite, focus)]
-        summary = aggregate_scores(scores)
-        self.assertLess(summary["focus_effect_by_memory"]["none"]["drift_rate"], 0)
+        stateful["steps"][0]["state_snapshot"]["goal_refs"] = []
+        scores = [
+            score_run(self.suite, ordinary),
+            score_run(self.suite, stateful),
+            score_run(self.suite, focus),
+        ]
+        summary = aggregate_scores(scores, suite=self.suite)
+        self.assertLess(
+            summary["focus_effect_by_memory"]["none"]["metrics"]["drift_rate"]["mean_delta"],
+            0,
+        )
         self.assertEqual(
             0.0,
-            summary["focus_effect_by_memory"]["none"]["resources"]["tokens"],
+            summary["focus_effect_by_memory"]["none"]["resources"]["tokens"]["mean_delta"],
+        )
+        self.assertEqual(1, summary["focus_effect_by_memory"]["none"]["paired_n"])
+        self.assertEqual(
+            1,
+            summary["focus_effect_vs_stateful_by_memory"]["none"]["paired_n"],
+        )
+        self.assertIn("typed-revision", summary["capabilities"])
+        self.assertEqual("measured", summary["capabilities"]["typed-revision"]["status"])
+        self.assertEqual(
+            "not-in-matched-comparison",
+            summary["capabilities"]["dynamic-retrieval-addressing"]["status"],
         )
         self.assertTrue(summary["contains_synthetic_runs"])
 

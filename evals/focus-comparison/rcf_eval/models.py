@@ -12,13 +12,16 @@ from pathlib import Path
 from typing import Any
 
 
-TASK_SCHEMA = "focus-eval-suite-1.0"
+TASK_SCHEMA = "focus-eval-suite-1.1"
 RUN_SCHEMA = "focus-eval-run-1.0"
 
 CONDITIONS: tuple[dict[str, str], ...] = (
     {"id": "ordinary-none", "workflow": "ordinary", "memory": "none"},
     {"id": "ordinary-rag", "workflow": "ordinary", "memory": "rag"},
     {"id": "ordinary-kg", "workflow": "ordinary", "memory": "kg"},
+    {"id": "stateful-none", "workflow": "stateful", "memory": "none"},
+    {"id": "stateful-rag", "workflow": "stateful", "memory": "rag"},
+    {"id": "stateful-kg", "workflow": "stateful", "memory": "kg"},
     {"id": "focus-none", "workflow": "focus", "memory": "none"},
     {"id": "focus-rag", "workflow": "focus", "memory": "rag"},
     {"id": "focus-kg", "workflow": "focus", "memory": "kg"},
@@ -76,6 +79,29 @@ def validate_suite(suite: dict[str, Any]) -> dict[str, Any]:
         raise EvalDataError(f"schema_version must be {TASK_SCHEMA!r}")
     _require_string(suite.get("suite_id"), "suite_id")
     _require_string(suite.get("contract_version"), "contract_version")
+    capabilities = _require_list(suite.get("capabilities"), "capabilities", non_empty=True)
+    capability_ids: set[str] = set()
+    for capability_index, capability_value in enumerate(capabilities):
+        label = f"capabilities[{capability_index}]"
+        capability = _require_mapping(capability_value, label)
+        capability_id = _require_string(capability.get("id"), f"{label}.id")
+        if capability_id in capability_ids:
+            raise EvalDataError(f"duplicate capability id: {capability_id}")
+        capability_ids.add(capability_id)
+        for key in ("focus_function", "traditional_baseline", "evaluation_layer", "claim_boundary"):
+            _require_string(capability.get(key), f"{label}.{key}")
+        baseline_workflow = _require_string(
+            capability.get("baseline_workflow"), f"{label}.baseline_workflow"
+        )
+        if baseline_workflow not in {"ordinary", "stateful"}:
+            raise EvalDataError(f"{label}.baseline_workflow must be ordinary or stateful")
+        _require_string_list(capability.get("github_references"), f"{label}.github_references")
+        _require_string_list(capability.get("task_ids"), f"{label}.task_ids")
+        memories = _require_string_list(capability.get("matched_memories"), f"{label}.matched_memories")
+        if any(memory not in {"none", "rag", "kg"} for memory in memories):
+            raise EvalDataError(f"{label}.matched_memories contains an unknown memory")
+        _require_string_list(capability.get("primary_metrics"), f"{label}.primary_metrics")
+
     tasks = _require_list(suite.get("tasks"), "tasks", non_empty=True)
     task_ids: set[str] = set()
     for task_index, task_value in enumerate(tasks):
@@ -87,6 +113,14 @@ def validate_suite(suite: dict[str, Any]) -> dict[str, Any]:
         task_ids.add(task_id)
         _require_string(task.get("title"), f"{label}.title")
         _require_string(task.get("family"), f"{label}.family")
+        task_capabilities = _require_string_list(
+            task.get("capability_ids"), f"{label}.capability_ids"
+        )
+        unknown_capabilities = set(task_capabilities) - capability_ids
+        if unknown_capabilities:
+            raise EvalDataError(
+                f"{label}.capability_ids contains unknown ids: {sorted(unknown_capabilities)}"
+            )
         events = _require_list(task.get("events"), f"{label}.events", non_empty=True)
         if len(events) < 8:
             raise EvalDataError(f"{label}.events must contain at least 8 long-horizon events")
@@ -122,6 +156,19 @@ def validate_suite(suite: dict[str, Any]) -> dict[str, Any]:
         ):
             _require_string_list(closure.get(key), f"{label}.closure.{key}")
         _require_string(closure.get("current_version"), f"{label}.closure.current_version")
+    for capability in capabilities:
+        unknown_tasks = set(capability["task_ids"]) - task_ids
+        if unknown_tasks:
+            raise EvalDataError(
+                f"capability {capability['id']} references unknown tasks: {sorted(unknown_tasks)}"
+            )
+        tagged_tasks = {
+            task["id"] for task in tasks if capability["id"] in task["capability_ids"]
+        }
+        if tagged_tasks != set(capability["task_ids"]):
+            raise EvalDataError(
+                f"capability {capability['id']} task_ids do not match task capability_ids"
+            )
     return suite
 
 

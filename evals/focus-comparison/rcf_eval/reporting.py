@@ -16,6 +16,10 @@ def _percent(value: float) -> str:
     return f"{value * 100:.2f}%"
 
 
+def _delta(effects: dict[str, Any], metric: str) -> float:
+    return float(effects["metrics"][metric]["mean_delta"])
+
+
 def render_markdown(summary: dict[str, Any]) -> str:
     lines = [
         "# Focus comparative evaluation report",
@@ -82,46 +86,138 @@ def render_markdown(summary: dict[str, Any]) -> str:
                 measurement=measurements,
             )
         )
-    lines.extend(["", "## Within-memory Focus effect versus ordinary workflow", ""])
-    lines.extend(
-        [
-            "| Information mechanism | Drift delta | Error delta | Rework delta | Avoidable rework delta | Necessary rework recall delta | Closure delta |",
-            "|---|---:|---:|---:|---:|---:|---:|",
-        ]
-    )
-    for memory, effects in summary["focus_effect_by_memory"].items():
-        lines.append(
-            "| {memory} | {drift:+.4f} | {error:+.4f} | {rework:+.4f} | {avoidable:+.4f} | {recall:+.4f} | {closure:+.4f} |".format(
-                memory=memory,
-                drift=effects["drift_rate"],
-                error=effects["error_rate"],
-                rework=effects["rework_count"],
-                avoidable=effects["avoidable_rework_count"],
-                recall=effects["necessary_rework_recall"],
-                closure=effects["closure_quality"],
+    ordinary_effects = summary["focus_effect_by_memory"]
+    if ordinary_effects:
+        lines.extend(["", "## Within-memory Focus effect versus ordinary workflow", ""])
+        lines.extend(
+            [
+                "| Information mechanism | Drift delta | Error delta | Rework delta | Avoidable rework delta | Necessary rework recall delta | Closure delta | Paired n |",
+                "|---|---:|---:|---:|---:|---:|---:|---:|",
+            ]
+        )
+        for memory, effects in ordinary_effects.items():
+            lines.append(
+                "| {memory} | {drift:+.4f} | {error:+.4f} | {rework:+.4f} | {avoidable:+.4f} | {recall:+.4f} | {closure:+.4f} | {paired_n} |".format(
+                    memory=memory,
+                    drift=_delta(effects, "drift_rate"),
+                    error=_delta(effects, "error_rate"),
+                    rework=_delta(effects, "rework_count"),
+                    avoidable=_delta(effects, "avoidable_rework_count"),
+                    recall=_delta(effects, "necessary_rework_recall"),
+                    closure=_delta(effects, "closure_quality"),
+                    paired_n=effects["paired_n"],
+                )
             )
+        lines.extend(
+            [
+                "",
+                "| Information mechanism | Token delta | Seconds delta | Tool-call delta |",
+                "|---|---:|---:|---:|",
+            ]
+        )
+        for memory, effects in ordinary_effects.items():
+            resources = effects["resources"]
+            lines.append(
+                "| {memory} | {tokens:+.0f} | {elapsed:+.2f} | {tools:+.2f} |".format(
+                    memory=memory,
+                    tokens=resources["tokens"]["mean_delta"],
+                    elapsed=resources["elapsed_seconds"]["mean_delta"],
+                    tools=resources["tool_calls"]["mean_delta"],
+                )
+            )
+    stateful_effects = summary.get("focus_effect_vs_stateful_by_memory", {})
+    if stateful_effects:
+        lines.extend(
+            [
+                "",
+                "## Focus effect versus equal-ledger stateful workflow",
+                "",
+                "| Information mechanism | Drift delta | Error delta | Avoidable rework delta | Necessary rework recall delta | Closure delta | Paired n |",
+                "|---|---:|---:|---:|---:|---:|---:|",
+            ]
+        )
+        for memory, effects in stateful_effects.items():
+            lines.append(
+                "| {memory} | {drift:+.4f} | {error:+.4f} | {avoidable:+.4f} | {recall:+.4f} | {closure:+.4f} | {paired_n} |".format(
+                    memory=memory,
+                    drift=_delta(effects, "drift_rate"),
+                    error=_delta(effects, "error_rate"),
+                    avoidable=_delta(effects, "avoidable_rework_count"),
+                    recall=_delta(effects, "necessary_rework_recall"),
+                    closure=_delta(effects, "closure_quality"),
+                    paired_n=effects["paired_n"],
+                )
+            )
+        lines.extend(
+            [
+                "",
+                "| Information mechanism | Token delta | Seconds delta | Tool-call delta |",
+                "|---|---:|---:|---:|",
+            ]
+        )
+        for memory, effects in stateful_effects.items():
+            resources = effects["resources"]
+            lines.append(
+                "| {memory} | {tokens:+.0f} | {elapsed:+.2f} | {tools:+.2f} |".format(
+                    memory=memory,
+                    tokens=resources["tokens"]["mean_delta"],
+                    elapsed=resources["elapsed_seconds"]["mean_delta"],
+                    tools=resources["tool_calls"]["mean_delta"],
+                )
+            )
+    capabilities = summary.get("capabilities", {})
+    if capabilities:
+        lines.extend(
+            [
+                "",
+                "## Function-matched comparison map",
+                "",
+                "| Focus capability | Traditional counterpart | GitHub reference | Evidence layer | Current status |",
+                "|---|---|---|---|---|",
+            ]
+        )
+        for capability_id, result in capabilities.items():
+            definition = result["definition"]
+            references = ", ".join(
+                f"[project]({url})" for url in definition["github_references"]
+            ) or "none"
+            lines.append(
+                f"| `{capability_id}` | {definition['traditional_baseline']} (`{definition['baseline_workflow']}`) | {references} | "
+                f"{definition['evaluation_layer']} | {result['status']} |"
+            )
+        lines.extend(
+            [
+                "",
+                "## Capability-level paired effects",
+                "",
+                "| Capability | Memory-matched pair | Drift delta | Error delta | Avoidable rework delta | Necessary rework recall delta | Closure delta | Paired n |",
+                "|---|---|---:|---:|---:|---:|---:|---:|",
+            ]
+        )
+        for capability_id, result in capabilities.items():
+            for memory, effects in result["focus_effect_by_memory"].items():
+                lines.append(
+                    "| `{capability}` | {memory} | {drift:+.4f} | {error:+.4f} | {avoidable:+.4f} | {recall:+.4f} | {closure:+.4f} | {paired_n} |".format(
+                        capability=capability_id,
+                        memory=f"{effects['baseline_workflow']}→focus / {memory}",
+                        drift=_delta(effects, "drift_rate"),
+                        error=_delta(effects, "error_rate"),
+                        avoidable=_delta(effects, "avoidable_rework_count"),
+                        recall=_delta(effects, "necessary_rework_recall"),
+                        closure=_delta(effects, "closure_quality"),
+                        paired_n=effects["paired_n"],
+                    )
+                )
+        lines.extend(
+            [
+                "",
+                "Capability rows are task profiles of the complete Focus workflow. They become component-causal evidence only after the named Focus component is independently ablated while all other inputs remain fixed.",
+            ]
         )
     lines.extend(
         [
             "",
-            "| Information mechanism | Token delta | Seconds delta | Tool-call delta |",
-            "|---|---:|---:|---:|",
-        ]
-    )
-    for memory, effects in summary["focus_effect_by_memory"].items():
-        resources = effects["resources"]
-        lines.append(
-            "| {memory} | {tokens:+.0f} | {elapsed:+.2f} | {tools:+.2f} |".format(
-                memory=memory,
-                tokens=resources["tokens"],
-                elapsed=resources["elapsed_seconds"],
-                tools=resources["tool_calls"],
-            )
-        )
-    lines.extend(
-        [
-            "",
-            "Lower drift, error, and avoidable rework are better; higher necessary-rework recall and closure quality are better. Total rework is descriptive and must be interpreted by necessity. Deterministic error scoring checks structural support and does not detect every semantic misunderstanding in natural language. Interpret tokens by the recorded measurement method; adapter estimates are not provider-billed tokens. Any formal conclusion also requires 95% intervals, task-stratified results, and raw-trajectory audit.",
+            "Lower drift, error, and avoidable rework are better; higher necessary-rework recall and closure quality are better. Deltas are Focus minus the named baseline workflow for the same task and seed. Total rework is descriptive and must be interpreted by necessity. Rework necessity is annotated per event, so multi-event revision chains require raw-trajectory or human review before an avoidable-rework label is treated as semantic failure. Deterministic error scoring checks structural support and does not detect every semantic misunderstanding in natural language. Interpret tokens by the recorded measurement method; adapter estimates are not provider-billed tokens. Any formal conclusion also requires 95% intervals, task-stratified results, and raw-trajectory audit.",
             "",
         ]
     )

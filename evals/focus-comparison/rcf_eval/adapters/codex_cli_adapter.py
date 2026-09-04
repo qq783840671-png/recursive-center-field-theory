@@ -96,7 +96,7 @@ STEP_SCHEMA: dict[str, Any] = {
 }
 
 TOKEN_RE = re.compile(r"[\w:-]+", re.UNICODE)
-ADAPTER_VERSION = "0.3"
+ADAPTER_VERSION = "0.4"
 
 
 def _tokens(value: str) -> set[str]:
@@ -198,7 +198,7 @@ def graph_memory(history: list[dict[str, Any]], current_delta: dict[str, Any], *
     }
 
 
-def focus_ledger(history: list[dict[str, Any]]) -> dict[str, Any] | None:
+def state_ledger(history: list[dict[str, Any]]) -> dict[str, Any] | None:
     if not history:
         return None
     response = history[-1]["response"]
@@ -221,8 +221,8 @@ def memory_payload(condition: dict[str, str], history: list[dict[str, Any]], del
         payload["retrieved_history"] = lexical_memory(history, delta["prompt"])
     elif condition["memory"] == "kg":
         payload["knowledge_graph"] = graph_memory(history, delta)
-    if condition["workflow"] == "focus":
-        payload["focus_ledger"] = focus_ledger(history)
+    if condition["workflow"] in {"focus", "stateful"}:
+        payload["state_ledger"] = state_ledger(history)
     return payload
 
 
@@ -233,11 +233,12 @@ def build_prompt(
     memory: dict[str, Any],
     focus_protocol: str,
 ) -> str:
-    workflow = (
-        "Apply the supplied Focus protocol and let the live field state determine the next action."
-        if condition["workflow"] == "focus"
-        else "Use an ordinary best-effort workflow without a Focus state machine."
-    )
+    workflow_rules = {
+        "focus": "Apply the supplied Focus protocol and let the live field state determine the next action.",
+        "stateful": "Use a conventional stateful workflow. Read the supplied state ledger, preserve current state, and choose a legal next action without applying Focus concepts.",
+        "ordinary": "Use an ordinary best-effort workflow without a Focus state machine or persistent state ledger.",
+    }
+    workflow = workflow_rules[condition["workflow"]]
     protocol = focus_protocol if condition["workflow"] == "focus" else ""
     return f"""You are the subject in a blinded long-horizon evaluation.
 
@@ -488,6 +489,11 @@ def run_request(request: dict[str, Any]) -> dict[str, Any]:
                 "canonical skill text plus external live ledger; runtime transitions not invoked"
                 if condition["workflow"] == "focus"
                 else "not applied"
+            ),
+            "state_ledger": (
+                "external structured ledger supplied"
+                if condition["workflow"] in {"focus", "stateful"}
+                else "not supplied"
             ),
             "memory_implementation": memory_implementation,
         },

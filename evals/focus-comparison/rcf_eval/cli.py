@@ -19,7 +19,7 @@ def _score_directory(suite_path: Path, runs_dir: Path) -> tuple[list[dict], dict
     if not run_paths:
         raise ValueError(f"no run JSON files found in {runs_dir}")
     scores = [score_run(suite, load_run(path, suite=suite)) for path in run_paths]
-    return scores, aggregate_scores(scores)
+    return scores, aggregate_scores(scores, suite=suite)
 
 
 def build_parser() -> argparse.ArgumentParser:

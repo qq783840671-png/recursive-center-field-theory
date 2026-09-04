@@ -2,7 +2,7 @@
 
 The custom solver remains responsible for executing the event sequence. Each
 Inspect sample carries one complete task/condition/seed request in metadata,
-so all six experimental cells use the same frozen contract.
+so all nine experimental cells use the same frozen contract.
 """
 
 from __future__ import annotations

@@ -1,17 +1,22 @@
 # Focus comparison harness
 
-This harness compares two workflow mechanisms and three information mechanisms:
+This harness compares three workflow mechanisms and three information mechanisms:
 
 | Condition | Workflow | Information access |
 |---|---|---|
 | `ordinary-none` | ordinary agent workflow | recent context only |
 | `ordinary-rag` | ordinary agent workflow | lightweight retrieval |
 | `ordinary-kg` | ordinary agent workflow | lightweight graph retrieval |
+| `stateful-none` | conventional stateful workflow with the same ledger as Focus | recent context only |
+| `stateful-rag` | conventional stateful workflow with the same ledger as Focus | lightweight retrieval |
+| `stateful-kg` | conventional stateful workflow with the same ledger as Focus | lightweight graph retrieval |
 | `focus-none` | Focus | recent context only |
 | `focus-rag` | Focus | lightweight retrieval |
 | `focus-kg` | Focus | lightweight graph retrieval |
 
-The factorial design separates the effect of Focus from the effect of retrieval. See [EVALUATION.md](../../EVALUATION.md) for the claim boundary and experimental requirements.
+The matrix separates the bundled Focus effect, the incremental Focus-protocol effect over an equal-ledger stateful workflow, and the effect of retrieval. See [EVALUATION.md](../../EVALUATION.md) for the claim boundary and experimental requirements.
+
+The suite also carries a machine-readable function map. Each Focus capability names its closest traditional counterpart, representative GitHub projects, relevant tasks, matched memory conditions, primary metrics, and the boundary of the resulting claim. Reports therefore show both the overall matrix and capability-level paired effects.
 
 The pilot event prompts are intentionally Chinese while the harness and report surface are English. This preserves the original long-horizon task set and exercises cross-language state retention; task IDs and oracle references remain language-neutral.
 
@@ -53,11 +58,11 @@ Synthetic results validate the harness only. They are not evidence that Focus ou
 
 ## Run the Codex CLI adapter
 
-The included adapter can perform a one-task, six-condition smoke run:
+The included adapter can perform a one-task, nine-condition smoke run:
 
 ```powershell
 $env:RCF_EVAL_TASK_IDS = "theory-revision"
-$env:RCF_EVAL_CODEX_MODEL = "gpt-5.6-luna"
+$env:RCF_EVAL_MODEL = "gpt-5.6-luna"
 $env:RCF_EVAL_CHECKPOINT_DIR = "runs/checkpoints"
 python run.py run `
   --suite datasets/pilot_tasks.json `
@@ -71,7 +76,7 @@ python run.py score `
   --out reports/codex-smoke
 ```
 
-Here, `none` supplies only recent context, `rag` performs auditable lexical top-3 retrieval over prior public events and outputs, and `kg` traverses a local graph derived from reference co-occurrence. These are calibration baselines, not production vector RAG or GraphRAG systems.
+Here, `none` supplies only recent context, `rag` performs auditable lexical top-3 retrieval over prior public events and outputs, and `kg` traverses a local graph derived from reference co-occurrence. The `stateful-*` cells receive the same structured ledger as the Focus cells but no Focus protocol. These are calibration baselines, not package-level benchmarks of LangGraph, production vector RAG, or GraphRAG.
 
 ## Connect another executor
 
@@ -81,4 +86,4 @@ Optional Inspect AI and DeepEval bridges are available under `rcf_eval/bridges/`
 
 ## Before making a performance claim
 
-Use equal models, tools, snapshots, budgets, and seed policy; hide the oracle from the executor; preserve raw trajectories; score offline; calibrate at least two independent annotators; repeat each condition at least three times; and count all Focus, retrieval, and judging cost.
+Use equal models, tools, snapshots, budgets, and seed policy; hide the oracle from the executor; preserve raw trajectories; score offline; calculate deltas from matched task-and-seed pairs; calibrate at least two independent annotators; repeat each condition at least three times; and count all Focus, retrieval, and judging cost. Capability profiles do not establish component causality until the named Focus component is independently ablated.

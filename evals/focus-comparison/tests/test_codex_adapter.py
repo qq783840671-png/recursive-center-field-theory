@@ -5,7 +5,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 from rcf_eval.adapters.codex_cli_adapter import (
-    focus_ledger,
+    state_ledger,
     graph_memory,
     lexical_memory,
     memory_payload,
@@ -77,17 +77,23 @@ class CodexAdapterTests(unittest.TestCase):
             history,
             delta,
         )
+        stateful_none = memory_payload(
+            {"id": "stateful-none", "workflow": "stateful", "memory": "none"},
+            history,
+            delta,
+        )
         self.assertEqual({"recent_window"}, set(ordinary_none))
         self.assertIn("retrieved_history", ordinary_rag)
         self.assertIn("knowledge_graph", ordinary_kg)
-        self.assertIn("focus_ledger", focus_none)
+        self.assertIn("state_ledger", focus_none)
+        self.assertEqual(focus_none, stateful_none)
 
     def test_lexical_graph_and_focus_memory_are_nonempty(self):
         history = self.history()
         delta = public_event_delta(self.task, 4)
         self.assertTrue(lexical_memory(history, delta["prompt"]))
         self.assertTrue(graph_memory(history, delta)["nodes"])
-        self.assertTrue(focus_ledger(history)["action_lineage"])
+        self.assertTrue(state_ledger(history)["action_lineage"])
 
     def test_response_boundary_removes_duplicate_refs(self):
         response = self.history()[0]["response"]
