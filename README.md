@@ -2,16 +2,54 @@
 
 **Know where you are. Ask what matters. Make the next valid move.**
 
-Focus is an executable orientation layer for thought and action. It turns an overloaded, unclear, or changing situation into a current field, a functional position, a governing question, and one valid next move. As evidence changes, it revises that position without silently losing earlier reasoning.
+Focus helps your AI locate the decision, ask the question that matters, and choose its next move when information is overwhelming or the situation changes.
+
+## See it in 60 seconds
+
+**A key premise has failed. Which parts of your work still hold?**
+
+In a controlled theory-revision test, the model was told that new evidence contradicted a premise. With Focus, it stated the governing question:
+
+> After the premise is contradicted, which conclusions still have valid evidence?
+
+The same run recorded three concrete decisions:
+
+1. **Withdraw** the conclusion whose supporting evidence had failed.
+2. **Keep** the earlier version as history and the unaffected work closed.
+3. **Reopen** only the affected scope in the recorded plan.
+
+*Translated and condensed from one controlled model run. The prompts explicitly requested revision; this example shows recorded question-and-action behavior.*
+
+[Install Focus](#install) · [Download the original evidence](https://github.com/qq783840671-png/recursive-center-field-theory/releases/download/v0.5.0-alpha.3/focus-evidence-2026-09-08.zip)
+
+<details>
+<summary>Read the original events and evidence limits</summary>
+
+Source: `typed-revision-n3/runs/theory-revision__focus-none__seed-12.json` inside the evidence archive; `gpt-5.6-luna`, condition `focus-none`, seed label `12`, events `tr-04` and `tr-05`.
+
+- `tr-04` prompt: “新实验反驳必要前提，撤回受影响结论并保留旧版本。”
+- Recorded governing question: “必要前提被反驳后，哪些结论仍可由有效证据支持”
+- Recorded action: `withdraw-affected-conclusion-and-revise-premise`; current version became `theory-v2`, with `theory-v1` retained as history.
+- `tr-05` prompt: “只重开受冲突影响的最小论证范围。”
+- Recorded output excerpt: “依据 ev:dependency-audit，仅重开受 contested premise 直接影响的最小论证范围；未受影响结构保持关闭，theory-v2 及 theory-v1 历史谱系均保留。”
+
+These are the model's declarations in a structured test. The harness supplied evidence identifiers and revision requirements, rather than a full domain argument or underlying experiment. The run used Skill text plus a ledger, without calling the full runtime. It illustrates how a question relates to revision decisions; independent problem discovery and performance advantage remain unproven. All three seed labels and comparison workflows are preserved in the archive; see [Evaluation](EVALUATION.md) for aggregate results and costs.
+
+</details>
+
+<details>
+<summary>See the underlying revision structure</summary>
 
 ```text
 FORM → DRIVE → REVISE → FOLD
 locate   act      reopen    return
 ```
 
-![Focus locates a position, reacts to invalidating evidence, and reopens only the affected scope.](plugin/assets/demo.svg)
+![Illustrated revision mechanism: locate a position, identify invalidating evidence, and reopen the affected scope.](plugin/assets/demo.svg)
 
-Use it when information has become larger than the decision you need to make, when you do not yet know what to ask, when several directions compete, or when a changing project has lost its structural next step.
+This is an explanatory illustration. Focus applies field orientation, governing questions and versioned revision to research, personal decisions and long-running projects.
+
+</details>
 
 ## Install
 
