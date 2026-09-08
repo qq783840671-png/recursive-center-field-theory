@@ -2,9 +2,32 @@
 
 **Know where you are. Ask what matters. Make the next valid move.**
 
-Focus helps your AI locate the decision, ask the question that matters, and choose its next move when information is overwhelming or the situation changes.
+Focus helps your AI make the situation behind a request explicit—its purpose, constraints and your position—then ask what matters and choose the next valid move.
 
 ## See it in 60 seconds
+
+**“Use Focus to evaluate this.”**
+
+During this project's GitHub release work, the author clarified the context:
+
+> I want to publish on GitHub. Evaluate it in that context.
+
+The field is a **personal, non-commercial release**. The author is presenting the project to first-time visitors. This gives the review a governing question:
+
+> Can a first-time visitor understand when to use Focus and find a clear reason to try it?
+
+- **Review criteria:** a clear use case, an easy trial, inspectable evidence, and a maintenance burden one person can sustain.
+- **Judgment:** ready to invite public trials; the opening needs to show how locating the field changes the question and next action.
+- **Next move:** show that connection in the existing README and Release.
+
+The context gives “evaluate this” a purpose, a point of view and usable criteria. Focus applies this orientation structure to research, personal decisions and evolving projects.
+
+*Translated and condensed from an author–assistant conversation on 2026-09-08. The author explicitly identified the publishing context. This is a usage example; measured results are linked below.*
+
+[Install Focus](#install) · [See the experiments](#evidence)
+
+<details>
+<summary>Inspect a recorded revision test and its limits</summary>
 
 **A key premise has failed. Which parts of your work still hold?**
 
@@ -20,10 +43,9 @@ The same run recorded three concrete decisions:
 
 *Translated and condensed from one controlled model run. The prompts explicitly requested revision; this example shows recorded question-and-action behavior.*
 
-[Install Focus](#install) · [Download the original evidence](https://github.com/qq783840671-png/recursive-center-field-theory/releases/download/v0.5.0-alpha.3/focus-evidence-2026-09-08.zip)
+[Download the original evidence](https://github.com/qq783840671-png/recursive-center-field-theory/releases/download/v0.5.0-alpha.3/focus-evidence-2026-09-08.zip)
 
-<details>
-<summary>Read the original events and evidence limits</summary>
+### Recorded source and limits
 
 Source: `typed-revision-n3/runs/theory-revision__focus-none__seed-12.json` inside the evidence archive; `gpt-5.6-luna`, condition `focus-none`, seed label `12`, events `tr-04` and `tr-05`.
 
